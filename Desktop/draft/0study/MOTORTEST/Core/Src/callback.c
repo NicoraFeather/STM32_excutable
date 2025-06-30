@@ -58,11 +58,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
              __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_BACKWARD, __HAL_TIM_GetAutoreload(&PWM_TIM));
              __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_FORWARD, __HAL_TIM_GetAutoreload(&PWM_TIM)+motor_Out1);
          }
+        /*******************************姿态读取***************************/
+        MPU6050_Kalman_Euler_Angels();
         /*******************************串口发送数据*********************************/
         i++;
         if (i>=10) {
             i=0;
-            sprintf(message,"speed:%.2f,%.2f\n",motor1.speed,Now_Position);
+            // MPU6050_Update();
+            // uint8_t reg;
+            // IIC_Simula_Read(MPU6050_ADDR_AD0_LOW, WHO_AM_I, 1, &reg);
+            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,Now_Position,Mpu6050_Data.Temp,Mpu6050_Data.yaw,Mpu6050_Data.KalmanPitch,Mpu6050_Data.KalmanRoll);
             HAL_UART_Transmit_IT(&huart1,message,strlen(message));
         }
     }

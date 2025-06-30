@@ -11,6 +11,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "functional.h"
+#include "mpu6050.h"
 
 #define COUNTER_MAX 65535
 extern Motor motor1;

@@ -43,7 +43,7 @@ void Motor_Init(void)
 }
 
 /**
- * @brief 获取当前速度，单位 Rad/s
+ * @brief 获取当前速度，单位 Rad/s，proc类型
  * @param motor 电机的指针
  * @note 放在回调函数中
  */

@@ -5,6 +5,7 @@
 #include "callback.h"
 #include "pid.h"
 #include "control.h"
+#include "vbat.h"
 
 float motor_Out1=0;
 float motor_Out2=0;
@@ -43,7 +44,7 @@ float Speed_Low_Filter(float new_Spe,float *speed_Record)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函数，用于计算速度
 {
 
-    if(htim->Instance==GAP_TIM.Instance)//间隔定时器中断，计算速度、调整速度、发送参数
+    if(htim->Instance==GAP_TIM.Instance)//10ms间隔定时器中断，计算速度、调整速度、发送参数
     {
         // /************位置环*************/
         //  Now_Position = (float)(motor1.totalCount-10000);// 得到当前位置 10000编码器脉冲计数的初始值
@@ -65,9 +66,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
         // /*******************************姿态读取***************************/
         // MPU6050_Kalman_Euler_Angels();
         /*******************新一版PID速度环*********************/
+        Motor_Get_Speed(&motor1);
+        Motor_Get_Speed(&motor2);
         MPU6050_Kalman_Euler_Angels();
         Control_Compute();
         Motor_PID_Compute();
+        float vbat = Get_Vbat();
         /*******************************串口发送数据*********************************/
         i++;
         if (i>=10) {
@@ -75,7 +79,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
             // MPU6050_Update();
             // uint8_t reg;
             // IIC_Simula_Read(MPU6050_ADDR_AD0_LOW, WHO_AM_I, 1, &reg);
-            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,Now_Position,Mpu6050_Data.KalmanPitch,Mpu6050_Data.Gyro_X,pid_l_speed.SP);
+            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,vbat,Mpu6050_Data.KalmanPitch,Mpu6050_Data.Gyro_X,pid_l_speed.SP);
             HAL_UART_Transmit_IT(&huart1,message,strlen(message));
         }
     }

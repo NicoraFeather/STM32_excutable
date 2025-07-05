@@ -47,7 +47,10 @@ extern Motor motor2;
 //     pid -> kd = KD;
 //     pid -> SP =0.0f;
 // }
-
+/**
+ * 初始化PID结构体，所有量归零
+ * @param pid
+ */
 void PID_Init_General(PID * pid)
 {
     pid -> err = 0;
@@ -65,6 +68,13 @@ void PID_Init_General(PID * pid)
     pid -> HighOutputLim = 3.4e38f;
 }
 
+/**
+ * 设置PID超参数
+ * @param pid
+ * @param KP
+ * @param KI
+ * @param KD
+ */
 void PID_Set_General(PID * pid, float KP, float KI, float KD)
 {
     pid->kp = KP;
@@ -72,11 +82,22 @@ void PID_Set_General(PID * pid, float KP, float KI, float KD)
     pid->kd = KD;
 }
 
+/**
+ * 改变PID目标值
+ * @param pid
+ * @param SP PID目标值
+ */
 void PID_ChangeSP_General(PID * pid, float SP)
 {
     pid -> SP = SP;
 }
 
+/**
+ * PID计算环节
+ * @param pid
+ * @param FB 反馈值
+ * @return PID环节后的输出量
+ */
 float PID_Compute_General(PID * pid, float FB)
 {
     float err = pid->SP - FB;
@@ -115,18 +136,32 @@ float PID_Compute_General(PID * pid, float FB)
     return CO;
 }
 
+/**
+ * PID设定限制幅度函数
+ * @param pid
+ * @param LowOutputLim 设定下限
+ * @param HighOutputLim 设定上限
+ */
 void PID_LimConfig_General(PID * pid, float LowOutputLim, float HighOutputLim)
 {
     pid -> LowOutputLim = LowOutputLim;
     pid -> HighOutputLim = HighOutputLim;
 }
 
+/**
+ * PID重置函数
+ * @param pid
+ */
 void PID_Reset_General(PID * pid)
 {
     pid->err_int_k_1 = 0;
     pid->err_k_1 = 0;
     pid->t_k_1 = 0;
 }
+
+/**
+ * 电机PID速度环计算函数
+ */
 void Motor_PID_Compute(void)
 {
     //float vbat = Bat_get(); //电源电压的获取函数还没写完😖，我们就当它是12V吧
@@ -134,9 +169,6 @@ void Motor_PID_Compute(void)
 
     PID_LimConfig_General(&pid_l_speed,-vbat, vbat);//假设电池电压为12V
     PID_LimConfig_General(&pid_r_speed,-vbat, vbat);
-
-    Motor_Get_Speed(&motor1);
-    Motor_Get_Speed(&motor2);
 
     float u_l = PID_Compute_General(&pid_l_speed, (motor1.speed));
     float u_r = PID_Compute_General(&pid_r_speed, (motor2.speed));

@@ -435,6 +435,7 @@ void MPU6050_Init(void)
 
 /**
  * 读取MPU6050当前存储的未滤波数据，更新到全局结构体
+ * @note proc类型
  */
 void MPU6050_Update(void)
 {
@@ -462,6 +463,7 @@ void MPU6050_Update(void)
 
 /**
  * MPU6050低通滤波函数，读取欧拉角
+ * @note proc类型
  */
 void MPU6050_LowFilter_Euler_Angels(void)
 {
@@ -486,6 +488,7 @@ void MPU6050_LowFilter_Euler_Angels(void)
 
 /**
  * MPU6050的卡尔曼滤波姿态解算
+ * @note proc类型
  */
 void MPU6050_Kalman_Euler_Angels(void)
 {

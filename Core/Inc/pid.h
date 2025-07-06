@@ -8,22 +8,6 @@
 #include "encoder.h"
 #include <stdio.h>
 
-extern uint8_t DataBuff[200];//接受到的完整指令内容
-extern float L_Target_Speed; //在main中设定的目标值
-
-
-
-//PID三个参数的初始值，当前已经整定
-#define KP_speed 5487.5
-#define KI_speed 0.51
-#define KD_speed 0
-
-#define KP_position 0.13
-#define KI_position 0
-#define KD_position 0
-
-#define ASCII_0 48   //0的ASCII码，因为发送的数据是HEX
-
 typedef struct _PID//PID参数结构体
 {
     float kp,ki,kd;
@@ -44,8 +28,7 @@ void PID_Set_General(PID * pid, float KP, float KI, float KD);
 void PID_ChangeSP_General(PID * pid, float SP);
 float PID_Compute_General(PID * pid, float FB);
 void PID_LimConfig_General(PID * pid, float LowOutputLim, float HighOutputLim);
-void USART_PID_Adjust(uint8_t Motor_n);//PID参数赋值函数
-float Get_Data(void);
 void Motor_PID_Compute(void);
+void USART_Parse_Command(char* str, uint8_t motor_n);
 
 #endif

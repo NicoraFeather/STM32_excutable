@@ -18,10 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
-#include <stdio.h>
-
 #include "adc.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -55,10 +53,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t RxLine = 0;
-uint8_t RxBuffer[] = {0};
-uint8_t DataBuff[200] = {0}; //接收数据缓存数组
+extern DMA_HandleTypeDef hdma_usart1_rx;
+
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position; //PID结构体
+extern uint8_t DataBuff[128]; //串口接收数据缓存
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,26 +67,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
-{
-  if (UartHandle->Instance == USART1) //如果是串口2
-  {
-    RxLine++; //每接收到一个数据，进入回调数据长度加1
-    DataBuff[RxLine - 1] = RxBuffer[0]; //把每次接收到的数据保存到缓存数组
-    if (RxBuffer[0] == 0x21) //接收结束标志位，这个数据可以自定义，根据实际需求，这里只做示例使用，不一定是0x21
-    {
-      printf("RXLen=%d\r\n", RxLine);
-      for (int i = 0; i < RxLine; i++)
-        printf("UART DataBuff[%d] = %c\r\n", i, DataBuff[i]);
-      // USART_PID_Adjust(1); //左轮
-      USART_PID_Adjust(2); //右轮
-      memset(DataBuff, 0, sizeof(DataBuff)); //清空缓存数组
-      RxLine = 0; //清空接收长度
-    }
-    RxBuffer[0] = 0;
-    HAL_UART_Receive_IT(&huart1, (uint8_t *) RxBuffer, 1); //每接收一个数据，就打开一次串口中断接收，否则只会接收一个数据就停止接收
-  }
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -120,18 +99,23 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM8_Init();
   MX_USART1_UART_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
+  MX_USART3_UART_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
+  DWT_InitMicros(); //初始化DWT计数器
   HAL_TIM_Base_Start_IT(&GAP_TIM);
   Motor_Init();
   Control_Init();
   MPU6050_Init(); //初始化MPU6050
-  HAL_UART_Receive_IT(&huart1, RxBuffer, 1);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, DataBuff, 128);
+  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
   PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f);
   PID_Set_General(&pid_r_speed, 0.4f, 10.0f, 0.0f);
   Vbat_Init();

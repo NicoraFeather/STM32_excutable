@@ -12,7 +12,7 @@
 #include "usart.h"
 #include "functional.h"
 #include "mpu6050.h"
-
+#include "dma.h"
 #define COUNTER_MAX 65535
 
 

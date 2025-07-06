@@ -39,8 +39,8 @@ void Control_Init(void)
  */
 void Control_Compute(void)
 {
-    float now = HAL_GetTick(); //获取一个时间
-    float deltaT = (now - LastTime) * 1.0e-3f; // 计算时间增量，单位秒
+    float now = Get_us64(); //获取一个时间
+    float deltaT = (now - LastTime) * 1.0e-6f; // 计算时间增量，单位秒
 
     float theta = Deg_to_Rag (Mpu6050_Data.KalmanPitch); // 获取当前角度
     float theta_dot = Deg_to_Rag(Mpu6050_Data.Gyro_X); // 获取当前角速度

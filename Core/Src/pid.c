@@ -1,5 +1,6 @@
 #include "pid.h"
 
+#include "delay.h"
 #include "functional.h"
 #include "vbat.h"
 
@@ -103,9 +104,9 @@ float PID_Compute_General(PID * pid, float FB)
 {
     float err = pid->SP - FB;
 
-    uint32_t t_k = HAL_GetTick();
+    uint32_t t_k = Get_us64();
 
-    float deltaT = (t_k - pid->t_k_1) * 1.0e-3f;
+    float deltaT = (t_k - pid->t_k_1) * 1.0e-6f;
     float err_dev;
     float err_int;
 
@@ -264,110 +265,55 @@ void Motor_PID_Compute(void)
 //     return pid->output;
 // }
 
-
-/**
- * @brief 解析出DataBuff中的数据
- * @return 解析得到的数据
- * @note 待改进：算法很笨使用字符数组遍历，可以使用串口空闲中断，并用更好的字符处理函数
- */
-float Get_Data(void)
+void USART_Parse_Command(char* str, uint8_t motor_n)
 {
-    uint8_t data_Start_Num = 0; // 记录数据位开始的地方
-    uint8_t data_End_Num = 0; // 记录数据位结束的地方
-    uint8_t data_Num = 0; // 记录数据位数
-    uint8_t minus_Flag = 0; // 判断是不是负数，数据有可能是负数，需要特别处理
-    float data_return = 0; // 解析得到的数据
-    for(uint8_t i=0;i<200;i++) // 查找等号和感叹号的位置，200是指最大允许接收数据
+    // 示例：P2=1.23!
+    char* cmd = strtok(str, "=");
+    char* val = strtok(NULL, "!");
+    if(cmd && val)
     {
-        if(DataBuff[i] == '=') data_Start_Num = i + 1; // +1是直接定位到数据起始位
-        if(DataBuff[i] == '!')
+        float value = atof(val);
+        if (motor_n == 1) // 左电机
         {
-            data_End_Num = i - 1;                      // 定位到感叹号就结束查询
-            break;
+            if(strcmp(cmd, "P2") == 0)
+                pid_l_speed.kp = value;
+            else if(strcmp(cmd, "I2") == 0)
+                pid_l_speed.ki = value;
+            else if (strcmp(cmd, "D2") == 0)
+                pid_l_speed.kd = value;
+            else if (strcmp(cmd, "P1") == 0)
+                pid_l_position.kp = value;
+            else if (strcmp(cmd, "I1") == 0)
+                pid_l_position.ki = value;
+            else if (strcmp(cmd, "D1") == 0)
+                pid_l_position.kd = value;
+            else if (strcmp(cmd, "Pos") == 0) // 设置目标位置
+                pid_l_position.SP = value;
+            else if (strcmp(cmd, "Spe") == 0) // 设置目标速度
+                pid_l_speed.SP = value;
+        }
+        else if (motor_n == 2) // 右电机
+        {
+            if(strcmp(cmd, "P2") == 0)
+                pid_r_speed.kp = value;
+            else if(strcmp(cmd, "I2") == 0)
+                pid_r_speed.ki = value;
+            else if (strcmp(cmd, "D2") == 0)
+                pid_r_speed.kd = value;
+            else if (strcmp(cmd, "P1") == 0)
+                pid_r_position.kp = value;
+            else if (strcmp(cmd, "I1") == 0)
+                pid_r_position.ki = value;
+            else if (strcmp(cmd, "D1") == 0)
+                pid_r_position.kd = value;
+            else if (strcmp(cmd, "Pos") == 0) // 设置目标位置
+                pid_r_position.SP = value;
+            else if (strcmp(cmd, "Spe") == 0) // 设置目标速度
+                pid_r_speed.SP = value;
         }
     }
-    if(DataBuff[data_Start_Num] == '-') // 如果是负数
-    {
-        data_Start_Num += 1; // 后移一位到数据位
-        minus_Flag = 1; // 负数flag
-    }
-    data_Num = data_End_Num - data_Start_Num + 1;    //得到的是数据的长度
-    if(data_Num == 4) // 数据共4位，4.02
-    {
-        data_return = (DataBuff[data_Start_Num]-ASCII_0)  + (DataBuff[data_Start_Num+2]-ASCII_0)*0.1f +
-                (DataBuff[data_Start_Num+3]-ASCII_0)*0.01f;
-    }
-    else if(data_Num == 5) // 数据共5位,40.22
-    {
-        data_return = (DataBuff[data_Start_Num]-ASCII_0)*10 + (DataBuff[data_Start_Num+1]-ASCII_0) + (DataBuff[data_Start_Num+3]-ASCII_0)*0.1f +
-                (DataBuff[data_Start_Num+4]-ASCII_0)*0.01f;
-    }
-    else if(data_Num == 6) // 数据共6位,450.22
-    {
-        data_return = (DataBuff[data_Start_Num]-ASCII_0)*100 + (DataBuff[data_Start_Num+1]-ASCII_0)*10 + (DataBuff[data_Start_Num+2]-ASCII_0) +
-                (DataBuff[data_Start_Num+4]-ASCII_0)*0.1f + (DataBuff[data_Start_Num+5]-ASCII_0)*0.01f;
-    }
-    else if(data_Num == 7) // 数据共7位,4500.22
-    {
-        data_return = (DataBuff[data_Start_Num]-ASCII_0)*1000 + (DataBuff[data_Start_Num+1]-ASCII_0)*100 + (DataBuff[data_Start_Num+2]-ASCII_0)*10 +
-                (DataBuff[data_Start_Num+3]-ASCII_0) + (DataBuff[data_Start_Num+5]-ASCII_0)*0.1f+ (DataBuff[data_Start_Num+6]-ASCII_0)*0.01f;
-    }
-    else if(data_Num == 8) // 数据共8位,45000.22
-    {
-        data_return = (DataBuff[data_Start_Num]-ASCII_0)*10000 + (DataBuff[data_Start_Num+1]-ASCII_0)*1000 + (DataBuff[data_Start_Num+2]-ASCII_0)*100 +
-                (DataBuff[data_Start_Num+3]-ASCII_0)*10 + (DataBuff[data_Start_Num+4]-ASCII_0)+ (DataBuff[data_Start_Num+6]-ASCII_0)*0.1f + (DataBuff[data_Start_Num+7]-ASCII_0)*0.01f;
-    }
-    if(minus_Flag == 1)  data_return = -data_return;
-    printf("data=%.2f\r\n",data_return);
-    return data_return;
 }
 
-/**
- * @brief 根据串口信息进行PID调参
- */
-void USART_PID_Adjust(uint8_t Motor_n)
-{
-    float data_Get = Get_Data(); // 存放接收到的数据
-    //    printf("data=%.2f\r\n",data_Get);
-    if(Motor_n == 1)//左边电机
-    {
-        if(DataBuff[0]=='P' && DataBuff[1]=='1') // 位置环P
-            pid_l_position.kp = data_Get;
-        else if(DataBuff[0]=='I' && DataBuff[1]=='1') // 位置环I
-            pid_l_position.ki = data_Get;
-        else if(DataBuff[0]=='D' && DataBuff[1]=='1') // 位置环D
-            pid_l_position.kd = data_Get;
-        else if(DataBuff[0]=='P' && DataBuff[1]=='2') // 速度环P
-            PID_Set_General(&pid_l_speed, data_Get, pid_l_speed.ki, pid_l_speed.kd);
-        else if(DataBuff[0]=='I' && DataBuff[1]=='2') // 速度环I
-            PID_Set_General(&pid_l_speed, pid_l_speed.kp, data_Get, pid_l_speed.kd);
-        else if(DataBuff[0]=='D' && DataBuff[1]=='2') // 速度环D
-            PID_Set_General(&pid_l_speed, pid_l_speed.kp, pid_l_speed.ki, data_Get);
-        else if((DataBuff[0]=='S' && DataBuff[1]=='p') && DataBuff[2]=='e') //目标速度
-            PID_ChangeSP_General(&pid_l_speed, data_Get);
-        else if((DataBuff[0]=='P' && DataBuff[1]=='o') && DataBuff[2]=='s') //目标位置
-            PID_ChangeSP_General(&pid_l_position, data_Get);
-    }
-    else if(Motor_n == 2) // 左边电机
-    {
-        if(DataBuff[0]=='P' && DataBuff[1]=='1') // 位置环P
-            pid_r_position.kp = data_Get;
-        else if(DataBuff[0]=='I' && DataBuff[1]=='1') // 位置环I
-            pid_r_position.ki = data_Get;
-        else if(DataBuff[0]=='D' && DataBuff[1]=='1') // 位置环D
-            pid_r_position.kd = data_Get;
-        if(DataBuff[0]=='P' && DataBuff[1]=='2') // 速度环P
-            PID_Set_General(&pid_r_speed, data_Get, pid_r_speed.ki, pid_r_speed.kd);
-        else if(DataBuff[0]=='I' && DataBuff[1]=='2') // 速度环I
-            PID_Set_General(&pid_r_speed, pid_r_speed.kp, data_Get, pid_r_speed.kd);
-        else if(DataBuff[0]=='D' && DataBuff[1]=='2') // 速度环D
-            PID_Set_General(&pid_r_speed, pid_r_speed.kp, pid_r_speed.ki, data_Get);
-        else if((DataBuff[0]=='S' && DataBuff[1]=='p') && DataBuff[2]=='e') //目标速度
-            PID_ChangeSP_General(&pid_r_speed, data_Get);
-        else if((DataBuff[0]=='P' && DataBuff[1]=='o') && DataBuff[2]=='s') //目标位置
-            PID_ChangeSP_General(&pid_r_position, data_Get);
-    }
-}
 
 //
 // Created by lak19 on 2025/6/25.

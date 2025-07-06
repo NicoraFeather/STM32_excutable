@@ -13,5 +13,5 @@ void Vbat_Init(void) {
     HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY);
 }
 float Get_Vbat() {
-    return HAL_ADC_GetValue(&hadc1)/4095.0f*31.303f*3.3f; // 3.3V参考电压，31.303是分压电阻的比例
+    return HAL_ADC_GetValue(&hadc1)/4095.0f*11.0f*3.3f; // 3.3V参考电压，11.0是分压电阻的比例
 }

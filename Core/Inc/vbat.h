@@ -5,7 +5,6 @@
 #ifndef VBAT_H
 #define VBAT_H
 
-
 void Vbat_Init(void);
 float Get_Vbat(void);
 #endif //VBAT_H

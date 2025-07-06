@@ -1,6 +1,7 @@
 #include "pid.h"
 
 #include "functional.h"
+#include "vbat.h"
 
 PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
 extern float L_Target_Position;
@@ -165,7 +166,7 @@ void PID_Reset_General(PID * pid)
 void Motor_PID_Compute(void)
 {
     //float vbat = Bat_get(); //电源电压的获取函数还没写完😖，我们就当它是12V吧
-    float vbat = 12.225f;
+    float vbat = Get_Vbat();
 
     PID_LimConfig_General(&pid_l_speed,-vbat, vbat);//假设电池电压为12V
     PID_LimConfig_General(&pid_r_speed,-vbat, vbat);

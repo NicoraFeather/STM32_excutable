@@ -34,8 +34,8 @@
 #define MOTOR2_CHANNEL_BACKWARD TIM_CHANNEL_3   //电机2拉高向后通道
 #define PWM_TIM     htim3                       //PWM产生定时器，和MOTOR1_TIM等效
 #define GAP_TIM     htim6                       //间隔定时器
-#define MOTOR_SPEED_RERATIO 30u                 //电机减速比
-#define PULSE_PER_ROUND 500                     //编码器线数
+#define MOTOR_SPEED_RERATIO 20u                 //电机减速比
+#define PULSE_PER_ROUND 13                   //编码器线数
 #define RADIUS_OF_TYRE 34                       //轮胎半径，单位mm
 #define LINE_SPEED_C RADIUS_OF_TYRE * 2 * 3.14  //轮胎周长，单位mm
 #define RELOADVALUE __HAL_TIM_GET_AUTORELOAD(&ENCODER1_TIM)      //获取编码器自动装载值，1&2对称

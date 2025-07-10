@@ -82,7 +82,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
             // uint8_t reg;
             // IIC_Simula_Read(MPU6050_ADDR_AD0_LOW, WHO_AM_I, 1, &reg);
             float t = Get_us64();
-            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,pid_l_speed.kp,Mpu6050_Data.KalmanPitch,Mpu6050_Data.Gyro_X,t);
+            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,motor2.speed,Mpu6050_Data.KalmanPitch,Mpu6050_Data.Gyro_X,t);
             HAL_UART_Transmit_DMA(&huart1,message,strlen(message));
         }
     }

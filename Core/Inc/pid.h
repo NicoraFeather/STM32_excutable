@@ -26,6 +26,7 @@ typedef struct _PID//PID参数结构体
 void PID_Init_General(PID * pid);
 void PID_Set_General(PID * pid, float KP, float KI, float KD);
 void PID_ChangeSP_General(PID * pid, float SP);
+void PID_Reset_General(PID * pid);
 float PID_Compute_General(PID * pid, float FB);
 void PID_LimConfig_General(PID * pid, float LowOutputLim, float HighOutputLim);
 void Motor_PID_Compute(void);

@@ -45,6 +45,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/pid.c
         Core/Src/control.c
         Core/Src/vbat.c
+        Core/Src/wireless.c
+        Core/Inc/wireless.h
+        Core/Src/No_Mcu_Ganv_Grayscale_Sensor.c
 
 )
 

@@ -22,6 +22,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "control.h"
 #include "delay.h"
 /* USER CODE END Includes */
 
@@ -44,6 +45,8 @@
 /* USER CODE BEGIN PV */
 extern  volatile uint64_t micros_counter;
 extern  volatile uint32_t last_cycle;
+
+uint8_t enable_flag = 0; // 用于标记是否开启计算
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -298,6 +301,21 @@ void USART3_IRQHandler(void)
   /* USER CODE BEGIN USART3_IRQn 1 */
 
   /* USER CODE END USART3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles EXTI line[15:10] interrupts.
+  */
+void EXTI15_10_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+  Control_Reset();
+  enable_flag = 1; // 设置标志位，表示可以开始计算
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+
+  /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
 /**

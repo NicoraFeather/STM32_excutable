@@ -10,4 +10,6 @@
 
 void Control_Init(void); // 控制器初始化
 void Control_Compute(void); // 控制器计算
+void Control_Reset(void);
+
 #endif //CONTROL_H

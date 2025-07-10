@@ -22,7 +22,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "control.h"
+#include "balance_control.h"
 #include "delay.h"
 /* USER CODE END Includes */
 

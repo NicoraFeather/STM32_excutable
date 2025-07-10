@@ -68,8 +68,7 @@ void Motor_Get_Speed(Motor* motor)
         motor->lastCount = motor->totalCount; //记录这一次的计数值
     }
 
-    else if (motor == &motor2)
-    {
+    else if (motor == &motor2) {
         motor->direct = __HAL_TIM_IS_TIM_COUNTING_DOWN(&ENCODER2_TIM);//如果向上计数（正转），返回值为0，否则返回值为1
         motor->totalCount = COUNTERNUM2 + motor->overflowNum * RELOADVALUE;//一个周期内的总计数值等于目前计数值加上溢出的计数值
 
@@ -83,15 +82,11 @@ void Motor_Get_Speed(Motor* motor)
             motor->overflowNum--;
             motor->totalCount = COUNTERNUM2 + motor->overflowNum * RELOADVALUE;//一个周期内的总计数值等于目前计数值加上溢出的计数值
         }
-        motor->speed = -(float)(motor->totalCount - motor->lastCount) / (4 * MOTOR_SPEED_RERATIO * PULSE_PER_ROUND) * 100 * 360;//单位：zhuan每秒
+        motor->speed = -(float)(motor->totalCount - motor->lastCount) / (4 * MOTOR_SPEED_RERATIO * PULSE_PER_ROUND) * 100 * 360;//单位：°每秒
         motor->speed = Deg_to_Rag(motor->speed);
         motor->lastCount = motor->totalCount; //记录这一次的计数值
     }
 }
-
-
-
-
 //
 // Created by lak19 on 2025/6/25.
 //

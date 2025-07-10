@@ -2,7 +2,7 @@
 // Created by lak19 on 2025/7/4.
 //
 
-#include "control.h"
+#include "balance_control.h"
 
 extern PID pid_l_speed, pid_r_speed; // 电机速度环PID结构体
 extern Motor motor1, motor2; // 电机结构体

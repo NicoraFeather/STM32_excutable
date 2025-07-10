@@ -27,14 +27,14 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "pid.h"
-#include "control.h"
+#include "balance_control.h"
 #include "mpu6050.h"
 #include "callback.h"
 #include "encoder.h"
 #include "vbat.h"
 #include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
 #include "../Inc/wireless.h"
-
+#include "motor_control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -124,7 +124,6 @@ int main(void)
   MX_TIM6_Init();
   MX_ADC1_Init();
   MX_USART3_UART_Init();
-  MX_TIM7_Init();
   MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   DWT_InitMicros(); //初始化DWT计数器，程序正式计数
@@ -154,13 +153,18 @@ int main(void)
    // HAL_Delay(100);
   /*******************电机控制初始化*******************/
   Motor_Init();//电机速度环初始化
-  Control_Init();//电机平衡初始化
+   //Control_Init();//电机平衡初始化
   MPU6050_Init(); //初始化MPU6050
 
   PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f);//速度环设定值
   PID_Set_General(&pid_r_speed, 0.4f, 10.0f, 0.0f);
 
-  //HAL_TIM_Base_Start_IT(&GAP_TIM);//10ms定时器开启
+  HAL_TIM_Base_Start_IT(&GAP_TIM);//10ms定时器开启
+ // Motor_Control_Go(6.0f); //设置电机前进速度
+  __HAL_TIM_SET_COMPARE(&MOTOR1_TIM, MOTOR1_CHANNEL_FORWARD, 7200-1);
+  __HAL_TIM_SET_COMPARE(&MOTOR1_TIM, MOTOR1_CHANNEL_BACKWARD, 3600);
+  __HAL_TIM_SET_COMPARE(&MOTOR2_TIM, MOTOR2_CHANNEL_FORWARD, 7200-1);
+  __HAL_TIM_SET_COMPARE(&MOTOR2_TIM, MOTOR2_CHANNEL_BACKWARD, 3600);
   /* USER CODE END 2 */
 
   /* Infinite loop */

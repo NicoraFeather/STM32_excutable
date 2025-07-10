@@ -167,7 +167,7 @@ void PID_Reset_General(PID * pid)
 void Motor_PID_Compute(void)
 {
     //float vbat = Bat_get(); //电源电压的获取函数还没写完😖，我们就当它是12V吧
-    float vbat = 12.1;
+    float vbat = 12.0;
 
     PID_LimConfig_General(&pid_l_speed,-vbat, vbat);//假设电池电压为12V
     PID_LimConfig_General(&pid_r_speed,-vbat, vbat);

@@ -5,11 +5,13 @@
 #include "callback.h"
 #include "pid.h"
 #include "balance_control.h"
+#include "motor_control.h"
+#include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
 #include "vbat.h"
 #include "wireless.h"
 const uint8_t UART_RX_BUF_SIZE = 128; //串口接收缓冲区大小
 
-uint8_t DataBuff[128] = {1,2,3}; //接收数据缓存数组
+uint8_t DataBuff[128] = {0}; //接收数据缓存数组
 float motor_Out1=0;
 float motor_Out2=0;
 char message[100]="";
@@ -20,6 +22,10 @@ extern Motor motor2;
 extern uint8_t enable_flag; // 用于标记是否开启计算
 extern float theta_ref; extern float x_dot;//test
 extern uint8_t command_received[128];
+extern No_MCU_Sensor sensor; // 无时基传感器结构体
+extern unsigned char Digtal;
+extern char rx_buff[256];
+
 int i=0;
 float L_Target_Position=20000;
 float Now_Position=0;
@@ -72,19 +78,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
         //  }
         // /*******************************姿态读取***************************/
         // MPU6050_Kalman_Euler_Angels();
-        /*******************新一版PID速度环*********************/
-        Motor_Get_Speed(&motor2);
+        /*******************新一版PID速度环*********************/\
+        No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
+        Digtal=Get_Digtal_For_User(&sensor);
+        //sprintf(rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
         Motor_Get_Speed(&motor1);
+        Motor_Get_Speed(&motor2);
         MPU6050_Kalman_Euler_Angels();
-           // Control_Compute();
-        //Motor_PID_Compute();
+        // Control_Compute();
+        Gray_control();
+        Motor_PID_Compute();
         /*******************************串口发送数据*********************************/
         i++;
-        if (i>=10) {
+        if (i>=10)
+        {
             i=0;
-            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,motor2.speed,pid_l_speed.SP,pid_r_speed.SP,Mpu6050_Data.Gyro_X);
-            HAL_UART_Transmit_DMA(&huart1,message,strlen(message));
-
+            HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff), HAL_MAX_DELAY);
+            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,motor2.speed,Mpu6050_Data.Accel_Z,Mpu6050_Data.Gyro_Z);
+            HAL_UART_Transmit_IT(&huart1,message,strlen(message));
         }
     }
 }
@@ -106,13 +117,13 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
         __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
     }
 
-    if (huart->Instance == USART3)// 如果是蓝牙串口
-    {
-        if (command_received[0]=='A')
-            HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-        HAL_UART_Transmit_DMA(&huart3, command_received, Size);
-
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
-        __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
-    }
+    // if (huart->Instance == USART3)// 如果是蓝牙串口
+    // {
+    //     if (command_received[0]=='A')
+    //         HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+    //     HAL_UART_Transmit_DMA(&huart3, command_received, Size);
+    //
+    //     HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
+    //     __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
+    // }
 }

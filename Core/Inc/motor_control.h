@@ -9,6 +9,6 @@
 #include "pid.h"
 void Motor_Control_Stop();
 void Motor_Control_Go(float speed); // 设置电机前进速度
-void Motor_Control_Turn(float theta); // 设置电机转向角度
-
+void Go_Ahead();
+void Gray_control(void); // 灰度传感器控制函数
 #endif //MOTOR_CONTROL_H

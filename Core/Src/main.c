@@ -34,7 +34,8 @@
 #include "vbat.h"
 #include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
 #include "../Inc/wireless.h"
-#include "motor_control.h"
+#include "../Inc/motor_control.h"
+#include "delay.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,11 +59,11 @@
 /********************灰度传感器配置********************/
 char rx_buff[256]="";
 unsigned short Anolog[8]={0};
-unsigned short white[8]={1600,1600,1600,1600,1600,1600,1600,1600};
-unsigned short black[8]={100,100,100,100,100,100,100,100};
+unsigned short white[8]={724,1179,2177,1937,1581,1741,2200,1076};
+unsigned short black[8]={355,484,992,833,800,775,912,487};
 unsigned short Normal[8];
 unsigned char Digtal;
-
+No_MCU_Sensor sensor;
 /********************extern数组********************/
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position; //PID结构体
@@ -125,46 +126,43 @@ int main(void)
   MX_ADC1_Init();
   MX_USART3_UART_Init();
   MX_ADC2_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   DWT_InitMicros(); //初始化DWT计数器，程序正式计数
   Vbat_Init();//初始化电池电压采集
 
   /************串口接收初始化************/
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
-  __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
+  // HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
+  // __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart1, DataBuff, 128);
   __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
   /**********************灰度传感器初始化**********************/
-   // No_MCU_Sensor sensor;
-   // sprintf((char *)rx_buff,"hello_world!\r\n");
-   // HAL_UART_Transmit_DMA(&huart1, rx_buff, strlen((char *)rx_buff));
-   //
-   // //初始化传感器，不带黑白
-   // No_MCU_Ganv_Sensor_Init_Frist(&sensor);//结构体归零
-   // No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
-   // Get_Anolog_Value(&sensor,Anolog);
-   // sprintf(rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-   // HAL_UART_Transmit_DMA(&huart1, rx_buff, strlen(rx_buff));
-   // HAL_Delay(100);
 
-   // //得到黑白校准值之后，初始化传感器
-   // No_MCU_Ganv_Sensor_Init(&sensor,white,black);
-   // HAL_Delay(100);
+   sprintf((char *)rx_buff,"hello_world!\r\n");
+   HAL_UART_Transmit(&huart1, rx_buff, strlen((char *)rx_buff),HAL_MAX_DELAY);
+
+   //初始化传感器，不带黑白
+   No_MCU_Ganv_Sensor_Init_Frist(&sensor);//结构体归零
+   No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
+   Get_Anolog_Value(&sensor,Anolog);
+   sprintf(rx_buff,"Anolog %d,%d,%d,%d,%d,%d,%d,%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
+   HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff),HAL_MAX_DELAY);
+   HAL_Delay(100);
+
+   //得到黑白校准值之后，初始化传感器
+   No_MCU_Ganv_Sensor_Init(&sensor,white,black);
+   HAL_Delay(100);
   /*******************电机控制初始化*******************/
-  Motor_Init();//电机速度环初始化
-   //Control_Init();//电机平衡初始化
   MPU6050_Init(); //初始化MPU6050
+  Motor_Init();//电机速度环初始化
+  //Control_Init();//电机平衡初始化
 
   PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f);//速度环设定值
   PID_Set_General(&pid_r_speed, 0.4f, 10.0f, 0.0f);
-
+  //Go_Ahead();
   HAL_TIM_Base_Start_IT(&GAP_TIM);//10ms定时器开启
- // Motor_Control_Go(6.0f); //设置电机前进速度
-  __HAL_TIM_SET_COMPARE(&MOTOR1_TIM, MOTOR1_CHANNEL_FORWARD, 7200-1);
-  __HAL_TIM_SET_COMPARE(&MOTOR1_TIM, MOTOR1_CHANNEL_BACKWARD, 3600);
-  __HAL_TIM_SET_COMPARE(&MOTOR2_TIM, MOTOR2_CHANNEL_FORWARD, 7200-1);
-  __HAL_TIM_SET_COMPARE(&MOTOR2_TIM, MOTOR2_CHANNEL_BACKWARD, 3600);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -181,10 +179,10 @@ int main(void)
     // HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff), HAL_MAX_DELAY);
     //
     // //获取传感器模拟量结果(有黑白初始化后返回1 没有返回 0)
-    // if(Get_Anolog_Value(&sensor,Anolog)){
-    //   sprintf(rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-    //   HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff), HAL_MAX_DELAY);
-    // }
+    // // if(Get_Anolog_Value(&sensor,Anolog)){
+    // //   sprintf(rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
+    // //   HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff), HAL_MAX_DELAY);
+    // // }
     //
     // //获取传感器归一化结果(只有当有黑白值传入进去了之后才会有这个结果！！有黑白值初始化后返1 没有返回 0)
     // if(Get_Normalize_For_User(&sensor,Normal)){
@@ -192,7 +190,7 @@ int main(void)
     //   HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff), HAL_MAX_DELAY);
     // }
     //
-    // HAL_Delay(10);//最短延时时间
+    // HAL_Delay(1000);//最短延时时间
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

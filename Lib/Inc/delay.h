@@ -20,7 +20,7 @@
     if(HAL_GetTick() < nxt) return; \
     nxt += (T);
 
-void delay_us(uint32_t us);
+void delay_us(uint16_t nus);
 void DWT_InitMicros(void);
 uint64_t Get_us64(void) ;
 

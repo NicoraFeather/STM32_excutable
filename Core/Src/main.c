@@ -137,21 +137,21 @@ int main(void)
   __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
   /**********************灰度传感器初始化**********************/
-   // No_MCU_Sensor sensor;
-   // sprintf((char *)rx_buff,"hello_world!\r\n");
-   // HAL_UART_Transmit_DMA(&huart1, rx_buff, strlen((char *)rx_buff));
-   //
-   // //初始化传感器，不带黑白
-   // No_MCU_Ganv_Sensor_Init_Frist(&sensor);//结构体归零
-   // No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
-   // Get_Anolog_Value(&sensor,Anolog);
-   // sprintf(rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-   // HAL_UART_Transmit_DMA(&huart1, rx_buff, strlen(rx_buff));
-   // HAL_Delay(100);
+   No_MCU_Sensor sensor;
+   sprintf((char *)rx_buff,"hello_world!\r\n");
+   HAL_UART_Transmit(&huart1, rx_buff, strlen((char *)rx_buff),HAL_MAX_DELAY);
+
+   //初始化传感器，不带黑白
+   No_MCU_Ganv_Sensor_Init_Frist(&sensor);//结构体归零
+   No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
+   Get_Anolog_Value(&sensor,Anolog);
+   sprintf(rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
+   HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff),HAL_MAX_DELAY);
+   HAL_Delay(100);
 
    // //得到黑白校准值之后，初始化传感器
-   // No_MCU_Ganv_Sensor_Init(&sensor,white,black);
-   // HAL_Delay(100);
+   No_MCU_Ganv_Sensor_Init(&sensor,white,black);
+   HAL_Delay(100);
   /*******************电机控制初始化*******************/
   Motor_Init();//电机速度环初始化
   Control_Init();//电机平衡初始化

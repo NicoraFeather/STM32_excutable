@@ -4,5 +4,7 @@
 
 #ifndef UART_COMMAND_H
 #define UART_COMMAND_H
+
 #include "usart.h"
+#include "../../Lib/Inc/functional.h"
 #endif //UART_COMMAND_H

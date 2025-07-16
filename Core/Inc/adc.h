@@ -37,7 +37,8 @@ extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
 
 /* USER CODE BEGIN Private defines */
-
+  uint16_t adc_getValue();
+  uint16_t Get_ADC_Average(uint8_t times);
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);

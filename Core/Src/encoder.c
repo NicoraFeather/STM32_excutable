@@ -1,10 +1,11 @@
 #include "encoder.h"
 
-#include "functional.h"
+#include "../../Lib/Inc/functional.h"
 
 Motor motor1; //定义一个左轮的结构体
 Motor motor2; //定义一个右轮的结构体
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
+
 /**
  * @brief 所有电机初始化，开启PWM，开启编码器，初始为刹车状态
  */

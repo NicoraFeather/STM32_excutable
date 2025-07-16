@@ -1,8 +1,8 @@
 #ifndef MPU6050_H
 #define MPU6050_H
 
-#include "iic_simulation.h"
-#include "functional.h"
+#include "../../Lib/Inc/iic_simulation.h"
+#include "../../Lib/Inc/functional.h"
 
 #define SMPLRT_DIV   0x19  // 采样率分频，典型值：0x07(125Hz) */
 #define CONFIG       0x1A  // 低通滤波频率，典型值：0x06(5Hz) */

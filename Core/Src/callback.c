@@ -6,15 +6,14 @@
 #include "pid.h"
 #include "balance_control.h"
 #include "motor_control.h"
-#include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
+#include "Grayscale_Sensor.h"
 #include "vbat.h"
 #include "wireless.h"
-const uint8_t UART_RX_BUF_SIZE = 128; //串口接收缓冲区大小
 
-uint8_t DataBuff[128] = {0}; //接收数据缓存数组
+extern uint8_t Uart1_DataBuff[128];//接收串口1的数据缓存数组
 float motor_Out1=0;
 float motor_Out2=0;
-char message[100]="";
+char message[100]=""; //与vofa通信用数组
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern PID pid_l_speed,pid_l_position,pid_r_speed,pid_r_position;
 extern Motor motor1;
@@ -24,7 +23,7 @@ extern float theta_ref; extern float x_dot;//test
 extern uint8_t command_received[128];
 extern No_MCU_Sensor sensor; // 无时基传感器结构体
 extern unsigned char Digtal;
-extern char rx_buff[256];
+extern uint8_t Gray_rx_buff[256];
 
 int i=0;
 float L_Target_Position=20000;
@@ -81,7 +80,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
         /*******************新一版PID速度环*********************/\
         No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
         Digtal=Get_Digtal_For_User(&sensor);
-        //sprintf(rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
+        sprintf(Gray_rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
         Motor_Get_Speed(&motor1);
         Motor_Get_Speed(&motor2);
         MPU6050_Kalman_Euler_Angels();
@@ -93,9 +92,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
         if (i>=10)
         {
             i=0;
-            HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff), HAL_MAX_DELAY);
+            //HAL_UART_Transmit(&huart1,Gray_rx_buff,strlen(Gray_rx_buff),HAL_MAX_DELAY);
             sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,motor2.speed,Mpu6050_Data.Accel_Z,Mpu6050_Data.Gyro_Z);
-            HAL_UART_Transmit_IT(&huart1,message,strlen(message));
+            //HAL_UART_Transmit_IT(&huart1,message,strlen(message));
         }
     }
 }
@@ -105,15 +104,15 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1) //如果是串口1（上位机）
     {
-        DataBuff[Size] = '\0'; // 末尾补0，方便字符串处理\
+        Uart1_DataBuff[Size] = '\0'; // 末尾补0，方便字符串处理\
 
         // 处理数据
-        USART_Parse_Command(DataBuff, 1);// 1表示左电机
+        USART_Parse_Command(Uart1_DataBuff, 1);// 1表示左电机
 
        // HAL_UART_Transmit_DMA(huart, DataBuff, Size); // 回传接收到的数据
 
         // 重新启动DMA接收
-        HAL_UARTEx_ReceiveToIdle_DMA(huart, DataBuff, 128);
+        HAL_UARTEx_ReceiveToIdle_DMA(huart, Uart1_DataBuff, 128);
         __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
     }
 

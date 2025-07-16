@@ -2,7 +2,7 @@
 // Created by lak19 on 2025/6/27.
 //
 
-#include "iic_simulation.h"
+#include "../Inc/iic_simulation.h"
 #include "delay.h"
 
 /**

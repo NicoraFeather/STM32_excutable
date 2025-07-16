@@ -3,6 +3,9 @@
 #include <string.h>
 #include "adc.h"
 #include "stm32f1xx_hal.h"
+void Grayscale_White_Calibrate();
+void Grayscale_Black_Calibrate();
+
 /**************************** 传感器版本配置 ****************************/
 #define Class		    0  // 经典版传感器
 #define Younth      1  // 青春版传感器

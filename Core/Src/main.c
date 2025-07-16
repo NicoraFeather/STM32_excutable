@@ -32,7 +32,7 @@
 #include "callback.h"
 #include "encoder.h"
 #include "vbat.h"
-#include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
+#include "Grayscale_Sensor.h"
 #include "../Inc/wireless.h"
 #include "../Inc/motor_control.h"
 #include "delay.h"
@@ -57,18 +57,13 @@
 
 /* USER CODE BEGIN PV */
 /********************灰度传感器配置********************/
-char rx_buff[256]="";
-unsigned short Anolog[8]={0};
-unsigned short white[8]={724,1179,2177,1937,1581,1741,2200,1076};
-unsigned short black[8]={355,484,992,833,800,775,912,487};
-unsigned short Normal[8];
 unsigned char Digtal;
-No_MCU_Sensor sensor;
 /********************extern数组********************/
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position; //PID结构体
-extern uint8_t DataBuff[128]; //串口接收数据缓存
+extern uint8_t Uart1_DataBuff[128]; //串口接收数据缓存
 extern uint8_t command_received[128]; //蓝牙接收数据缓存
+extern No_MCU_Sensor sensor; //无时基传感器结构体
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -132,27 +127,15 @@ int main(void)
   Vbat_Init();//初始化电池电压采集
 
   /************串口接收初始化************/
-  // HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
-  // __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, DataBuff, 128);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
+  __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart1_DataBuff, 128);
   __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
   /**********************灰度传感器初始化**********************/
-
-   sprintf((char *)rx_buff,"hello_world!\r\n");
-   HAL_UART_Transmit(&huart1, rx_buff, strlen((char *)rx_buff),HAL_MAX_DELAY);
-
-   //初始化传感器，不带黑白
-   No_MCU_Ganv_Sensor_Init_Frist(&sensor);//结构体归零
-   No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
-   Get_Anolog_Value(&sensor,Anolog);
-   sprintf(rx_buff,"Anolog %d,%d,%d,%d,%d,%d,%d,%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-   HAL_UART_Transmit(&huart1, rx_buff, strlen(rx_buff),HAL_MAX_DELAY);
-   HAL_Delay(100);
-
-   //得到黑白校准值之后，初始化传感器
-   No_MCU_Ganv_Sensor_Init(&sensor,white,black);
-   HAL_Delay(100);
+  No_MCU_Ganv_Sensor_Init_Frist(&sensor);//首次初始化
+  HAL_Delay(100);
+  Grayscale_White_Calibrate();
   /*******************电机控制初始化*******************/
   MPU6050_Init(); //初始化MPU6050
   Motor_Init();//电机速度环初始化

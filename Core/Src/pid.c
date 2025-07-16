@@ -1,7 +1,7 @@
 #include "pid.h"
 
 #include "../../Lib/Inc/delay.h"
-#include "functional.h"
+#include "../../Lib/Inc/functional.h"
 #include "vbat.h"
 
 PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
@@ -264,77 +264,7 @@ void Motor_PID_Compute(void)
 //     return pid->output;
 // }
 
-void USART_Parse_Command(char* str, uint8_t motor_n)
-{
-    char* cmd = strtok(str, "=");
-    char* val = strtok(NULL, "!");
-    if(cmd == NULL) return;
 
-    // 处理无参数命令
-    if(strcmp(cmd, "RES_W") == 0)
-    {
-        // 这里调用灰度传感器白色标定函数
-        Grayscale_White_Calibrate();
-        return;
-    }
-    if(strcmp(cmd, "RES_B") == 0)
-    {
-        // 这里调用灰度传感器黑色标定函数
-        Grayscale_Black_Calibrate();
-        return;
-    }
-
-    // 处理有参数命令
-    if(val == NULL) return;
-    float value = atof(val);
-
-    if (motor_n == 1) // 左电机
-    {
-        if(strcmp(cmd, "P2") == 0)
-            pid_l_speed.kp = value;
-        else if(strcmp(cmd, "I2") == 0)
-            pid_l_speed.ki = value;
-        else if (strcmp(cmd, "D2") == 0)
-            pid_l_speed.kd = value;
-        else if (strcmp(cmd, "P1") == 0)
-            pid_l_position.kp = value;
-        else if (strcmp(cmd, "I1") == 0)
-            pid_l_position.ki = value;
-        else if (strcmp(cmd, "D1") == 0)
-            pid_l_position.kd = value;
-        else if (strcmp(cmd, "Pos") == 0)
-            pid_l_position.SP = value;
-        else if (strcmp(cmd, "Spe") == 0)
-            pid_l_speed.SP = value;
-    }
-    else if (motor_n == 2) // 右电机
-    {
-        if(strcmp(cmd, "P2") == 0)
-            pid_r_speed.kp = value;
-        else if(strcmp(cmd, "I2") == 0)
-            pid_r_speed.ki = value;
-        else if (strcmp(cmd, "D2") == 0)
-            pid_r_speed.kd = value;
-        else if (strcmp(cmd, "P1") == 0)
-            pid_r_position.kp = value;
-        else if (strcmp(cmd, "I1") == 0)
-            pid_r_position.ki = value;
-        else if (strcmp(cmd, "D1") == 0)
-            pid_r_position.kd = value;
-        else if (strcmp(cmd, "Pos") == 0)
-            pid_r_position.SP = value;
-        else if (strcmp(cmd, "Spe") == 0)
-            pid_r_speed.SP = value;
-    }
-
-    // 公共控制命令
-    if(strcmp(cmd, "F") == 0)
-        forward_speed = value;
-    else if(strcmp(cmd, "L") == 0)
-        left_speed = value;
-    else if(strcmp(cmd, "R") == 0)
-        right_speed = value;
-}
 
 
 //

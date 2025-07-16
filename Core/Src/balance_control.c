@@ -8,13 +8,14 @@ extern PID pid_l_speed, pid_r_speed; // 电机速度环PID结构体
 extern Motor motor1, motor2; // 电机结构体
 
 PID pid_theta, pid_theta_dot, pid_velocity, pid_turn; // 角度环PID结构体
-float theta_ref;
-float x_dot;
+float theta_ref; // 目标角度
+float x_dot;  //  // 反馈线速度
 float const g = 9.8f; // 重力加速度
 float const lp = 0.05f; //重心到转轴距离，单位m
 float const rw = 0.034f; //轮胎半径，单位m
 uint32_t LastTime = 0; // 上次计算时间
 float omega_ref = 0; //角速度设定值
+
 /**
  * 控制初始化，设定各环PID初始化，设定初速度为0
  */

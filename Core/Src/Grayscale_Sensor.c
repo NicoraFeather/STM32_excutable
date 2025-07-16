@@ -1,11 +1,24 @@
-#include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
+#include <stdio.h>
 
-/* 函数功能：采集8个通道的模拟值并进行均值滤波
-   参数说明：result - 存储8个通道处理结果的数组 */
+#include "Grayscale_Sensor.h"
+#include "usart.h"
+
+No_MCU_Sensor sensor;  // 定义无时基传感器结构体
+uint8_t Gray_rx_buff[256];  // 关于灰度的串口接收缓冲区
+
+uint8_t Analog[8]; //设定8个通道的模拟值数组
+uint8_t white[8]; // 设定8个通道的白色阈值数组
+uint8_t black[8]; // 设定8个通道的黑色阈值数组
+
+
+/**
+ * 采集8个通道的模拟值并进行均值滤波
+ * @param result 存储8个通道处理结果的数组
+ */
 void Get_Analog_value(unsigned short *result)
 {
     unsigned char i,j;
-    unsigned int Anolag=0;
+    unsigned int Analog=0;
     
     // 遍历8个传感器通道（3位地址线组合）
     for(i=0;i<8;i++)
@@ -18,20 +31,23 @@ void Get_Analog_value(unsigned short *result)
         // 每个通道采集8次ADC值进行均值滤波
         for(j=0;j<8;j++)
         {
-            Anolag+=Get_adc_of_user();  // 累加ADC采样值
+            Analog+=Get_adc_of_user();  // 累加ADC采样值
         }
-				if(!Direction)result[i]=Anolag/8;  // 计算平均值
-        else result[7-i]=Anolag/8;  // 计算平均值
-        Anolag=0;  // 重置累加器
+        if(!Direction) //Direction是可以更改的
+            result[i]=Analog/8;  // 计算平均值
+        else
+            result[7-i]=Analog/8;  // 计算平均值
+        Analog=0;  // 重置累加器
     }
 }
 
-/* 函数功能：将模拟值转换为数字信号（二值化处理）
-   参数说明：
-   adc_value - 原始ADC值数组
-   Gray_white - 白色阈值数组
-   Gray_black - 黑色阈值数组
-   Digital - 输出的数字信号（按位表示） */
+/**
+ * 将模拟值转换为数字信号（二值化处理）
+ * @param adc_value 原始ADC值数组
+ * @param Gray_white 白色阈值数组
+ * @param Gray_black 黑色阈值数组
+ * @param Digital 输出的数字信号（按位表示）
+ */
 void convertAnalogToDigital(unsigned short *adc_value,unsigned short *Gray_white,unsigned short *Gray_black,unsigned char *Digital)
 {
     for (int i = 0; i < 8; i++) {
@@ -44,13 +60,14 @@ void convertAnalogToDigital(unsigned short *adc_value,unsigned short *Gray_white
     }
 }
 
-/* 函数功能：归一化ADC值到指定范围
-   参数说明：
-   adc_value - 原始ADC值数组
-   Normal_factor - 归一化系数数组
-   Calibrated_black - 校准黑值数组
-   result - 存储归一化结果的数组
-   bits - ADC最大量程值（如255/1024等） */
+/**
+ * 归一化ADC值到指定范围
+ * @param adc_value 原始ADC值数组
+ * @param Normal_factor 归一化系数数组
+ * @param Calibrated_black 校准黑值数组
+ * @param result 存储归一化结果的数组
+ * @param bits ADC最大量程值（如255/1024等）
+ */
 void normalizeAnalogValues(unsigned short *adc_value,double *Normal_factor,unsigned short *Calibrated_black,unsigned short *result,double bits)
 {
     for (int i = 0; i < 8; i++) {
@@ -67,8 +84,10 @@ void normalizeAnalogValues(unsigned short *adc_value,double *Normal_factor,unsig
     }
 }
 
-/* 函数功能：传感器结构体初始化（首次初始化）
-   参数说明：sensor - 传感器结构体指针 */
+/**
+ * 传感器结构体初始化，首次初始化，main中调用
+ * @param sensor 传感器结构体指针
+ */
 void No_MCU_Ganv_Sensor_Init_Frist(No_MCU_Sensor*sensor)
 {
     // 清零所有校准数据和状态
@@ -90,11 +109,12 @@ void No_MCU_Ganv_Sensor_Init_Frist(No_MCU_Sensor*sensor)
     sensor->ok=0;  // 标记未完成校准
 }
 
-/* 函数功能：传感器完整初始化（带校准参数）
-   参数说明：
-   sensor - 传感器结构体指针
-   Calibrated_white - 校准白值数组
-   Calibrated_black - 校准黑值数组 */
+/**
+ * 传感器完整初始化（带校准参数）
+ * @param sensor 传感器结构体指针
+ * @param Calibrated_white 校准白值数组
+ * @param Calibrated_black 校准黑值数组
+ */
 void No_MCU_Ganv_Sensor_Init(No_MCU_Sensor*sensor,unsigned short *Calibrated_white,unsigned short *Calibrated_black)
 {
     No_MCU_Ganv_Sensor_Init_Frist(sensor);
@@ -145,7 +165,10 @@ void No_MCU_Ganv_Sensor_Init(No_MCU_Sensor*sensor,unsigned short *Calibrated_whi
     sensor->ok=1;  // 标记初始化完成
 }
 
-/* 函数功能：传感器主任务（无定时器版本）*/
+/**
+ * 传感器主任务（无定时器版本）
+ * @param sensor 传感器结构体指针
+ */
 void No_Mcu_Ganv_Sensor_Task_Without_tick(No_MCU_Sensor*sensor)
 {
     Get_Analog_value(sensor->Analog_value);  // 采集数据
@@ -153,7 +176,10 @@ void No_Mcu_Ganv_Sensor_Task_Without_tick(No_MCU_Sensor*sensor)
     normalizeAnalogValues(sensor->Analog_value,  sensor->Normal_factor,sensor->Calibrated_black,sensor->Normal_value,sensor->bits);// 归一化处理
 }
 
-/* 函数功能：传感器主任务（带定时器版本）*/
+/**
+ * 传感器主任务（带定时器版本）
+ * @param sensor 传感器结构体指针
+ */
 void No_Mcu_Ganv_Sensor_Task_With_tick(No_MCU_Sensor*sensor)
 {
     if(sensor->Tick>=sensor->Time_out)  // 检查是否到达采样周期
@@ -198,4 +224,28 @@ unsigned char Get_Anolog_Value(No_MCU_Sensor*sensor,unsigned short *result)
     Get_Analog_value(sensor->Analog_value);  // 重新采集数据
     memcpy(result,sensor->Analog_value,16);
 		return 1;
+}
+
+/**
+ * 100ms时间校验白色灰度值标准量
+ */
+void Grayscale_White_Calibrate() {
+
+    No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
+    Get_Anolog_Value(&sensor,Analog);
+    memcpy(white,Analog,sizeof(Analog));// 将当前模拟值作为白色校准值
+    sprintf(Gray_rx_buff,"Analog %d,%d,%d,%d,%d,%d,%d,%d\r\n",Analog[0],Analog[1],Analog[2],Analog[3],Analog[4],Analog[5],Analog[6],Analog[7]);
+    HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff),HAL_MAX_DELAY);
+}
+
+/**
+ * 100ms时间校验黑色灰度值标准量
+ */
+void Grayscale_Black_Calibrate() {
+
+    No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
+    Get_Anolog_Value(&sensor,Analog);
+    memcpy(black,Analog,sizeof(Analog));// 将当前模拟值作为黑色校准值
+    sprintf(Gray_rx_buff,"Analog %d,%d,%d,%d,%d,%d,%d,%d\r\n",Analog[0],Analog[1],Analog[2],Analog[3],Analog[4],Analog[5],Analog[6],Analog[7]);
+    HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff),HAL_MAX_DELAY);
 }

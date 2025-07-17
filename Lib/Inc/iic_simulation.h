@@ -40,9 +40,9 @@
 #define PEout(n)   BIT_ADDR(GPIOE_ODR_Addr,n)
 #define PEin(n)    BIT_ADDR(GPIOE_IDR_Addr,n)
 
-//直接操作寄存器进行读写状态切换
-#define SDA_IN() {GPIOB->CRL&=0X0FFFFFFF;GPIOB->CRL|=(uint32_t)8<<28;}
-#define SDA_OUT() {GPIOB->CRL&=0X0FFFFFFF;GPIOB->CRL|=(uint32_t)3<<28;}
+//TODO寄存器操作进行状态的切换，注意要该
+#define SDA_IN()  {GPIOB->CRH &= 0x0FFFFFFF; GPIOB->CRH |= (uint32_t)8 << 28;}
+#define SDA_OUT() {GPIOB->CRH &= 0x0FFFFFFF; GPIOB->CRH |= (uint32_t)3 << 28;}
 
 //IO 操作，这里需要更改引脚号
 #define IIC_SCL PBout(14) //SCL

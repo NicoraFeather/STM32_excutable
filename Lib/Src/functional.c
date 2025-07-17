@@ -1,7 +1,7 @@
 //
 // Created by lak19 on 2025/6/27.
 //
-#include "functional.h"
+#include "../Inc/functional.h"
 /**
  * @brief 用于实现浮点数值的比例映射，错误时返回NAN
  * @param data_in 进入的数值

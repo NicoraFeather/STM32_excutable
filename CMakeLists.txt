@@ -38,16 +38,18 @@ enable_language(C ASM)
 add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/encoder.c
         Core/Src/mpu6050.c
-        Core/Src/delay.c
-        Core/Src/iic_simulation.c
-        Core/Src/functional.c
+        Lib/Src/iic_simulation.c
+        Lib/Src/functional.c
         Core/Src/callback.c
         Core/Src/pid.c
-        Core/Src/control.c
+        Core/Src/balance_control.c
         Core/Src/vbat.c
         Core/Src/wireless.c
         Core/Inc/wireless.h
-        Core/Src/No_Mcu_Ganv_Grayscale_Sensor.c
+        Core/Src/Grayscale_Sensor.c
+        Core/Src/motor_control.c
+        Core/Inc/motor_control.h
+        Core/Src/uart_command.c
 
 )
 
@@ -74,11 +76,15 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources her
+        Lib/Src/delay.c
+        Lib/Src/iic_simulation.c
+        Lib/Src/functional.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+        Lib/Inc
 )
 
 # Add project symbols (macros)

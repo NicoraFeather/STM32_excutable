@@ -1,7 +1,7 @@
 #include "pid.h"
 
-#include "delay.h"
-#include "functional.h"
+#include "../../Lib/Inc/delay.h"
+#include "../../Lib/Inc/functional.h"
 #include "vbat.h"
 
 PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
@@ -166,8 +166,7 @@ void PID_Reset_General(PID * pid)
  */
 void Motor_PID_Compute(void)
 {
-    //float vbat = Bat_get(); //电源电压的获取函数还没写完😖，我们就当它是12V吧
-    float vbat = 12.1;
+    float vbat = Get_Vbat();
 
     PID_LimConfig_General(&pid_l_speed,-vbat, vbat);//假设电池电压为12V
     PID_LimConfig_General(&pid_r_speed,-vbat, vbat);
@@ -265,54 +264,7 @@ void Motor_PID_Compute(void)
 //     return pid->output;
 // }
 
-void USART_Parse_Command(char* str, uint8_t motor_n)
-{
-    // 示例：P2=1.23!
-    char* cmd = strtok(str, "=");
-    char* val = strtok(NULL, "!");
-    if(cmd && val)
-    {
-        float value = atof(val);
-        if (motor_n == 1) // 左电机
-        {
-            if(strcmp(cmd, "P2") == 0)
-                pid_l_speed.kp = value;
-            else if(strcmp(cmd, "I2") == 0)
-                pid_l_speed.ki = value;
-            else if (strcmp(cmd, "D2") == 0)
-                pid_l_speed.kd = value;
-            else if (strcmp(cmd, "P1") == 0)
-                pid_l_position.kp = value;
-            else if (strcmp(cmd, "I1") == 0)
-                pid_l_position.ki = value;
-            else if (strcmp(cmd, "D1") == 0)
-                pid_l_position.kd = value;
-            else if (strcmp(cmd, "Pos") == 0) // 设置目标位置
-                pid_l_position.SP = value;
-            else if (strcmp(cmd, "Spe") == 0) // 设置目标速度
-                pid_l_speed.SP = value;
-        }
-        else if (motor_n == 2) // 右电机
-        {
-            if(strcmp(cmd, "P2") == 0)
-                pid_r_speed.kp = value;
-            else if(strcmp(cmd, "I2") == 0)
-                pid_r_speed.ki = value;
-            else if (strcmp(cmd, "D2") == 0)
-                pid_r_speed.kd = value;
-            else if (strcmp(cmd, "P1") == 0)
-                pid_r_position.kp = value;
-            else if (strcmp(cmd, "I1") == 0)
-                pid_r_position.ki = value;
-            else if (strcmp(cmd, "D1") == 0)
-                pid_r_position.kd = value;
-            else if (strcmp(cmd, "Pos") == 0) // 设置目标位置
-                pid_r_position.SP = value;
-            else if (strcmp(cmd, "Spe") == 0) // 设置目标速度
-                pid_r_speed.SP = value;
-        }
-    }
-}
+
 
 
 //

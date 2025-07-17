@@ -26,13 +26,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "balance_control.h"
 #include "pid.h"
-#include "control.h"
 #include "mpu6050.h"
 #include "callback.h"
 #include "encoder.h"
+#include "Grayscale_Sensor.h"
 #include "vbat.h"
-#include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
 #include "../Inc/wireless.h"
 
 /* USER CODE END Includes */
@@ -154,7 +154,7 @@ int main(void)
    HAL_Delay(100);
   /*******************电机控制初始化*******************/
   Motor_Init();//电机速度环初始化
-  Control_Init();//电机平衡初始化
+  //Control_Init();//电机平衡初始化
   MPU6050_Init(); //初始化MPU6050
 
   PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f);//速度环设定值

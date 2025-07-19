@@ -11,4 +11,10 @@ void Motor_Control_Stop();
 void Motor_Control_Go(float speed); // 设置电机前进速度
 void Go_Ahead();
 void Gray_control(void); // 灰度传感器控制函数
+void Turn_Right();
+void Turn_Left();
+void Self_Left();
+void Self_Right();
+void Car_Stop(); // 抱死电机
+
 #endif //MOTOR_CONTROL_H

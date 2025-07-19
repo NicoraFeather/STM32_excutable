@@ -50,6 +50,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/motor_control.c
         Core/Inc/motor_control.h
         Core/Src/uart_command.c
+        Core/Src/State_Control.c
+        Core/Inc/State_Control.h
 
 )
 

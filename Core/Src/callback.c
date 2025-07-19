@@ -3,33 +3,43 @@
 //
 
 #include "callback.h"
+
+#include <stdbool.h>
+
 #include "pid.h"
 #include "balance_control.h"
 #include "motor_control.h"
 #include "Grayscale_Sensor.h"
+#include "State_Control.h"
 #include "vbat.h"
 #include "wireless.h"
 
-extern uint8_t Uart1_DataBuff[128];//接收串口1的数据缓存数组
-float motor_Out1=0;
-float motor_Out2=0;
-char message[100]=""; //与vofa通信用数组
+extern uint8_t Uart1_DataBuff[128]; //接收串口1的数据缓存数组
+float motor_Out1 = 0;
+float motor_Out2 = 0;
+char message[100] = ""; //与vofa通信用数组
 extern DMA_HandleTypeDef hdma_usart1_rx;
-extern PID pid_l_speed,pid_l_position,pid_r_speed,pid_r_position;
+extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
 extern Motor motor1;
 extern Motor motor2;
 extern uint8_t enable_flag; // 用于标记是否开启计算
-extern float theta_ref; extern float x_dot;//test
+extern float theta_ref;
+extern float x_dot; //test
 extern uint8_t command_received[128];
-extern No_MCU_Sensor sensor; // 无时基传感器结构体
-extern unsigned char Digtal;
-extern uint8_t Gray_rx_buff[256];
+extern uint32_t counter_10ms;
+extern bool system_initialized;
 
-int i=0;
-float L_Target_Position=20000;
-float Now_Position=0;
+/********************灰度传感器配置********************/
+extern No_MCU_Sensor sensor; //无时基传感器结构体
+extern unsigned char Digtal;
+extern char Gray_rx_buff[256];
+
+
+int i = 0;
+float L_Target_Position = 20000;
+float Now_Position = 0;
 #define SPEED_RECORD_NUM 20 // 经测试，50Hz个采样值进行滤波的效果比较好
-float speed_Record[SPEED_RECORD_NUM]={0};
+float speed_Record[SPEED_RECORD_NUM] = {0};
 
 /**
  * @brief 平均滤波
@@ -38,25 +48,24 @@ float speed_Record[SPEED_RECORD_NUM]={0};
  * @return 速度平均值
  * @note 因为本例未使用，精度已经有0.01，参数未整定
  */
-float Speed_Low_Filter(float new_Spe,float *speed_Record)
+float Speed_Low_Filter(float new_Spe, float *speed_Record)
 {
     float sum = 0.0f;
     float test_Speed = new_Spe;
-    for(uint8_t i=SPEED_RECORD_NUM-1;i>0;i--)//将现有数据后移一位
+    for (uint8_t i = SPEED_RECORD_NUM - 1; i > 0; i--) //将现有数据后移一位
     {
-        speed_Record[i] = speed_Record[i-1];
-        sum += speed_Record[i-1];
+        speed_Record[i] = speed_Record[i - 1];
+        sum += speed_Record[i - 1];
     }
-    speed_Record[0] = new_Spe;//第一位是新的数据
+    speed_Record[0] = new_Spe; //第一位是新的数据
     sum += new_Spe;
-    test_Speed = sum/SPEED_RECORD_NUM;
-    return sum/SPEED_RECORD_NUM;//返回均值
+    test_Speed = sum / SPEED_RECORD_NUM;
+    return sum / SPEED_RECORD_NUM; //返回均值
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函数，用于计算速度
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //定时器回调函数，用于计算速度
 {
-
-    if(htim->Instance==GAP_TIM.Instance)//10ms间隔定时器中断，计算速度、调整速度、发送参数
+    if (htim->Instance == GAP_TIM.Instance) //10ms间隔定时器中断，计算速度、调整速度、发送参数
     {
         // /************位置环*************/
         //  Now_Position = (float)(motor1.totalCount-10000);// 得到当前位置 10000编码器脉冲计数的初始值
@@ -78,23 +87,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器回调函�
         // /*******************************姿态读取***************************/
         // MPU6050_Kalman_Euler_Angels();
         /*******************新一版PID速度环*********************/\
-        No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
-        Digtal=Get_Digtal_For_User(&sensor);
-        sprintf(Gray_rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
+        //No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
+        //Digtal = Get_Digtal_For_User(&sensor);
         Motor_Get_Speed(&motor1);
         Motor_Get_Speed(&motor2);
-        MPU6050_Kalman_Euler_Angels();
+        //MPU6050_Kalman_Euler_Angels();
         // Control_Compute();
-        Gray_control();
+        //Gray_control();
+        Control_goto_2();
         Motor_PID_Compute();
         /*******************************串口发送数据*********************************/
         i++;
-        if (i>=10)
+        if (i >= 10)
         {
-            i=0;
+            i = 0;
             //HAL_UART_Transmit(&huart1,Gray_rx_buff,strlen(Gray_rx_buff),HAL_MAX_DELAY);
-            sprintf(message,"speed:%.2f,%.2f,%.2f,%.2f\r\n",motor1.speed,motor2.speed,Mpu6050_Data.Accel_Z,Mpu6050_Data.Gyro_Z);
-            //HAL_UART_Transmit_IT(&huart1,message,strlen(message));
+            //sprintf(message, "speed:%.2f,%.2f,%.2f,%.2f\r\n", motor1.speed, motor2.speed, pid_l_speed.SP,
+            //         pid_r_speed.SP);
+            //HAL_UART_Transmit_IT(&huart1, message, strlen(message));
+
+            // sprintf(Gray_rx_buff, "Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n", (Digtal >> 0) & 0x01, (Digtal >> 1) & 0x01,
+            //         (Digtal >> 2) & 0x01, (Digtal >> 3) & 0x01, (Digtal >> 4) & 0x01, (Digtal >> 5) & 0x01,
+            //         (Digtal >> 6) & 0x01, (Digtal >> 7) & 0x01);
+            // HAL_UART_Transmit_IT(&huart1, Gray_rx_buff, strlen(Gray_rx_buff));
         }
     }
 }
@@ -104,25 +119,23 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1) //如果是串口1（上位机）
     {
-        Uart1_DataBuff[Size] = '\0'; // 末尾补0，方便字符串处理\
+        //Uart1_DataBuff[Size] = '\0'; // 末尾补0，方便字符串处理\
 
         // 处理数据
-        USART_Parse_Command(Uart1_DataBuff, 1);// 1表示左电机
+        USART_Parse_Command(Uart1_DataBuff, 1); // 1表示左电机
 
-       // HAL_UART_Transmit_DMA(huart, DataBuff, Size); // 回传接收到的数据
+        //HAL_UART_Transmit_DMA(huart, DataBuff, Size); // 回传接收到的数据
 
         // 重新启动DMA接收
         HAL_UARTEx_ReceiveToIdle_DMA(huart, Uart1_DataBuff, 128);
-        __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+        __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
     }
 
-    // if (huart->Instance == USART3)// 如果是蓝牙串口
-    // {
-    //     if (command_received[0]=='A')
-    //         HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-    //     HAL_UART_Transmit_DMA(&huart3, command_received, Size);
-    //
-    //     HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
-    //     __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
-    // }
+    if (huart->Instance == USART3) // 如果是蓝牙串口
+    {
+        HAL_UART_Transmit_DMA(&huart1, command_received, Size);
+
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart3, command_received, 128);
+        __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+    }
 }

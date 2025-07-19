@@ -24,13 +24,13 @@ void Motor_Init(void)
     HAL_TIM_PWM_Start(&PWM_TIM, TIM_CHANNEL_4);
     __HAL_TIM_SET_COUNTER(&ENCODER1_TIM, 10000);
     __HAL_TIM_SET_COUNTER(&ENCODER2_TIM, 10000);
-    motor1.lastCount = 0;                                   //结构体内容初始化
+    motor1.lastCount = 10000;                                   //结构体内容初始化
     motor1.totalCount = 0;
     motor1.overflowNum = 0;
     motor1.speed = 0;
     motor1.direct = 0;
 
-    motor2.lastCount = 0;                                   //结构体内容初始化
+    motor2.lastCount = 10000;                                   //结构体内容初始化
     motor2.totalCount = 0;
     motor2.overflowNum = 0;
     motor2.speed = 0;
@@ -41,6 +41,11 @@ void Motor_Init(void)
     PID_Set_General(&pid_l_speed, 0, 0, 0);
     PID_Set_General(&pid_r_speed, 0, 0, 0);
 
+    PID_Reset_General(&pid_l_speed); //重置PID结构体
+    PID_Reset_General(&pid_r_speed); //重置PID结构体
+
+    PID_ChangeSP_General(&pid_l_speed, 0); //设置速度环目标速度为0
+    PID_ChangeSP_General(&pid_r_speed, 0); //设置速度环目标速度为0
 }
 
 /**

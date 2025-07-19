@@ -66,6 +66,9 @@ void PID_Init_General(PID * pid)
     pid -> SP =0.0f;
 
     pid -> t_k_1 = 0;
+    pid->err_k_1 = 0;
+    pid->err_int_k_1 = 0;
+
     pid -> LowOutputLim = -3.4e38f; //表示初始不限制输出的幅度
     pid -> HighOutputLim = 3.4e38f;
 }
@@ -106,9 +109,10 @@ float PID_Compute_General(PID * pid, float FB)
 
     uint32_t t_k = Get_us64();
 
-    float deltaT = (t_k - pid->t_k_1) * 1.0e-6f;
-    float err_dev;
-    float err_int;
+    float deltaT = (pid->t_k_1 == 0) ? 0.01f : (t_k - pid->t_k_1) * 1.0e-6f; // 第一次假定周期为10ms
+    //float deltaT = (t_k - pid->t_k_1) * 1.0e-6f;
+    float err_dev = 0.0f;
+    float err_int = pid->err_int_k_1;
 
     if (pid->t_k_1 != 0)
     {
@@ -166,9 +170,10 @@ void PID_Reset_General(PID * pid)
  */
 void Motor_PID_Compute(void)
 {
-    float vbat = Get_Vbat();
+    //float vbat = Get_Vbat();
+    float vbat = 12.0f; // 假设电池电压为12V，实际应用中应从VBAT获取
 
-    PID_LimConfig_General(&pid_l_speed,-vbat, vbat);//假设电池电压为12V
+    PID_LimConfig_General(&pid_l_speed,-vbat, vbat);
     PID_LimConfig_General(&pid_r_speed,-vbat, vbat);
 
     float u_l = PID_Compute_General(&pid_l_speed, (motor1.speed));
@@ -184,6 +189,21 @@ void Motor_PID_Compute(void)
         __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_BACKWARD, __HAL_TIM_GetAutoreload(&PWM_TIM));
         __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_FORWARD, (uint32_t)(__HAL_TIM_GetAutoreload(&PWM_TIM) * (1.0f + u_l/vbat)));
     }
+
+    // if(u_l >= 0) {
+    //     // 正转：正向通道输出有效PWM（占空比 = 1 - u_l/vbat），反向通道停止
+    //     __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_FORWARD,
+    //         (uint32_t)(__HAL_TIM_GetAutoreload(&PWM_TIM) * (1.0f - u_l/vbat)));
+    //     __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_BACKWARD,
+    //         __HAL_TIM_GetAutoreload(&PWM_TIM)); // 反向通道100% -> 停止
+    // } else {
+    //     // 反转：反向通道输出有效PWM，正向通道停止
+    //     __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_FORWARD,
+    //         __HAL_TIM_GetAutoreload(&PWM_TIM)); // 正向通道100% -> 停止
+    //     __HAL_TIM_SetCompare(&MOTOR1_TIM, MOTOR1_CHANNEL_BACKWARD,
+    //         (uint32_t)(__HAL_TIM_GetAutoreload(&PWM_TIM) * (1.0f + u_l/vbat))); // 注意u_l为负
+    // }
+
     if(u_r >= 0)
     {
         __HAL_TIM_SetCompare(&MOTOR2_TIM, MOTOR2_CHANNEL_FORWARD, __HAL_TIM_GetAutoreload(&PWM_TIM));
@@ -194,8 +214,13 @@ void Motor_PID_Compute(void)
         __HAL_TIM_SetCompare(&MOTOR2_TIM, MOTOR2_CHANNEL_BACKWARD, __HAL_TIM_GetAutoreload(&PWM_TIM));
         __HAL_TIM_SetCompare(&MOTOR2_TIM, MOTOR2_CHANNEL_FORWARD, (uint32_t)(__HAL_TIM_GetAutoreload(&PWM_TIM) * (1.0f + u_r/vbat)));
     }
-
 }
+
+
+
+
+
+
 // /**
 //  * @brief 编码器速度环
 //  * @param pid 目标PID结构体

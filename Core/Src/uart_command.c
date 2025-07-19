@@ -10,6 +10,7 @@ extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
 
 uint8_t Uart1_DataBuff[128] = {0};
 uint8_t dataArr[128] = {0}; // 假设最大数据长度为128
+uint8_t target_flag = 0; // 标记目的地
 /*************************帧格式************************
  * 帧头  | 数据长度 | 数据内容 | 校验和 |
  * 0xAA |   N      |   Data   |  Sum   |
@@ -46,7 +47,7 @@ void Rx_Command(uint16_t size)
     {
         if (Uart1_DataBuff[1] == size) {
             uint8_t sum = 0;
-            for (int8_t i = 0; i < size - 1; i++)
+            for (int i = 0; i < size - 1; i++)
                 sum += Uart1_DataBuff[i];
             if (sum == Uart1_DataBuff[size - 1])
                 {
@@ -72,13 +73,13 @@ void USART_Parse_Command(char* str, uint8_t motor_n)
     if(strcmp(cmd, "RES_W") == 0)
     {
         // 这里调用灰度传感器白色标定函数
-        Grayscale_White_Calibrate();
+        //Grayscale_White_Calibrate();
         return;
     }
     if(strcmp(cmd, "RES_B") == 0)
     {
         // 这里调用灰度传感器黑色标定函数
-        Grayscale_Black_Calibrate();
+        //Grayscale_Black_Calibrate();
         return;
     }
 
@@ -130,4 +131,15 @@ void USART_Parse_Command(char* str, uint8_t motor_n)
         PID_ChangeSP_General(&pid_l_speed, value);
         PID_ChangeSP_General(&pid_r_speed, value);
     }
+
+    else if(strcmp(cmd, "R") == 0) {
+        PID_ChangeSP_General(&pid_l_speed, value);
+        PID_ChangeSP_General(&pid_r_speed, -value);
+    }
+
+    else if(strcmp(cmd, "L") == 0) {
+        PID_ChangeSP_General(&pid_l_speed, -value);
+        PID_ChangeSP_General(&pid_r_speed, value);
+    }
+
 }

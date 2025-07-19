@@ -1,5 +1,5 @@
-#ifndef NO_MCU_GANV_GRAYSCALE_SENSOR_CONFIG_H_
-#define NO_MCU_GANV_GRAYSCALE_SENSOR_CONFIG_H_
+#ifndef Grayscale_Sensor_H_
+#define Grayscale_Sensor_H_
 #include <string.h>
 #include "adc.h"
 #include "stm32f1xx_hal.h"

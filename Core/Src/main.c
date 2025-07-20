@@ -38,6 +38,7 @@
 #include "../Inc/wireless.h"
 #include "../Inc/motor_control.h"
 #include "delay.h"
+#include "uart_com_cycle.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,8 +71,10 @@ unsigned char Digtal;
 /********************extern数组********************/
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position; //PID结构体
-extern uint8_t Uart1_DataBuff[128]; //串口接收数据缓存
-extern uint8_t command_received[128]; //蓝牙接收数据缓存
+extern uint8_t Uart1_Com_Buff[128]; //串口接收数据缓存
+extern uint8_t BLE_Com[128]; //蓝牙接收数据缓存
+extern uint8_t Uart1_Com[128]; //提取的数据
+extern uint8_t Uart1_Com_Length; // 提取的数据长度
 
 /* USER CODE END PV */
 
@@ -83,13 +86,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void uart1_send_string(char* str)
-{
-  while(*str!=0&&str!=0)
-  {
-    HAL_UART_Transmit(&huart1,*str++,1,HAL_MAX_DELAY);
-  }
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -136,9 +133,9 @@ int main(void)
   Vbat_Init();//初始化电池电压采集
 
   /************串口接收初始化************/
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart3,command_received, 128);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart3,BLE_Com, 128);
   __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart1_DataBuff, 128);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart1_Com_Buff, 128);
   __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
   /**********************灰度传感器初始化**********************/
@@ -164,10 +161,9 @@ int main(void)
 
   PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f);//速度环设定值
   PID_Set_General(&pid_r_speed, 0.4f, 10.0f, 0.0f);
-  //Go_Ahead();
   HAL_Delay(500);
 
-  HAL_TIM_Base_Start_IT(&GAP_TIM);//10ms定时器开启
+  //HAL_TIM_Base_Start_IT(&GAP_TIM);//10ms定时器开启
 
   /* USER CODE END 2 */
 
@@ -175,6 +171,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    Uart1_Com_Length = Command_GetCommand(Uart1_Com);
+    if (Uart1_Com_Length != 0) //如果有命令
+    {
+      HAL_UART_Transmit(&huart1, Uart1_Com, Uart1_Com_Length, HAL_MAX_DELAY); //回显命令
+    }
     // //无时基传感器常规任务，包含模拟量，数字量，归一化量
     // No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
     // //有时基传感器常规任务，包含模拟量，数字量，归一化量

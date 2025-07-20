@@ -52,6 +52,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/uart_command.c
         Core/Src/State_Control.c
         Core/Inc/State_Control.h
+        Lib/Src/uart_com_cycle.c
+        Lib/Inc/uart_com_cycle.h
 
 )
 

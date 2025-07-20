@@ -16,5 +16,7 @@ void Turn_Left();
 void Self_Left();
 void Self_Right();
 void Car_Stop(); // 抱死电机
+void Turn_Left_Adj();
+void Turn_Right_Adj();
 
 #endif //MOTOR_CONTROL_H

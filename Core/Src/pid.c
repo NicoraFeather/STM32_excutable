@@ -170,8 +170,8 @@ void PID_Reset_General(PID * pid)
  */
 void Motor_PID_Compute(void)
 {
-    //float vbat = Get_Vbat();
-    float vbat = 12.0f; // 假设电池电压为12V，实际应用中应从VBAT获取
+    float vbat = Get_Vbat();
+    // float vbat = 12.0f; // 假设电池电压为12V，实际应用中应从VBAT获取
 
     PID_LimConfig_General(&pid_l_speed,-vbat, vbat);
     PID_LimConfig_General(&pid_r_speed,-vbat, vbat);

@@ -6,81 +6,25 @@
 
 extern unsigned char Digtal;
 
-typedef enum
-{
-    FAR,
-    MID,
-} FLAG_FAR_OR_MID; //用于标记距离状态
-
-typedef enum
-{
-    LEFT,
-    RIGHT,
-} MID_LEFT_OR_RIGHT;
-
-typedef enum
-{
-    STATE_CHECK_MEDICINE,
-    STATE_CHECK_NUM,
-    STATE_GOTO_12,
-    STATE_GOTO_345678,
-    STATE_WAIT_MEDICINE,
-    STATE_BACK,
-} State_Task;
-
-typedef enum
-{
-    MOVE_TO_3,
-    MOVE_TO_4,
-    MOVE_TO_5,
-    MOVE_TO_6,
-    MOVE_TO_7,
-    MOVE_TO_8,
-} Move_Flag;
-
-// 定义运动控制状态枚举
-typedef enum
-{
-    STATE_START,
-    STATE_FORWARD_1,
-    STATE_FORWARD_2,
-    STATE_FORWARD_3,
-    STATE_TURN_LEFT_A,
-    STATE_TURN_RIGHT_A,
-    STATE_TURN_LEFT_B,
-    STATE_TURN_RIGHT_B,
-    STATE_TURNOVER,
-    STATE_END,
-    STATE_STOP,
-    STATE_WAIT,
-    STATE_IF_FAR,
-
-    STATE_FORWARD_1_BACK,
-    STATE_FORWARD_2_BACK,
-    STATE_FORWARD_3_BACK,
-    STATE_TURN_LEFT_A_BACK,
-    STATE_TURN_RIGHT_A_BACK,
-    STATE_TURN_LEFT_B_BACK,
-    STATE_TURN_RIGHT_B_BACK,
-    STATE_END_BACK,
-} State_Motor;
+/********************任务状态机********************/
+_Move_Flag Move_Flag = MOVE_TO_1; //当前移动状态
+State_Task current_task_state = STATE_CHECK_MEDICINE; //当前任务状态
+FLAG_FAR_OR_MID Flag_FAR_OR_MID = MID; //距离状态标志
+MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT = LEFT; //中间状态标志
 
 
 uint32_t counter_10ms = 0; // 10ms计时器
 
 const uint32_t TURN_TIME = 150; //转向的时间，12/6速
 const uint32_t END_TIME = 55; //从节点到终点的时间,12速
-const uint32_t END_BACK_TIME = 60; //从终点回到节点的时间，12速
+const uint32_t END_BACK_TIME = 65; //从终点回到节点的时间，12速
 const uint32_t TURNOVER_TIME = 160; //翻转时间，6速
 const uint32_t FORWARD_1_TIME = 265; //走到一号节点的时间，12速
-const uint32_t FORWARD_1_BACK_TIME = 150; //从一号节点返回的时间，12速
-const uint32_t FORWARD_2_TIME = 572; //走到二号节点的时间，12速
-const uint32_t FORWARD_2_BACK_TIME = 472; //从二号节点返回的时间，12速
+const uint32_t FORWARD_1_BACK_TIME = 160; //从一号节点返回的时间，12速
+const uint32_t FORWARD_2_TIME = 595; //走到二号节点的时间，12速
+const uint32_t FORWARD_2_BACK_TIME = 490; //从二号节点返回的时间，12速
 
 
-State_Task current_task_state = STATE_CHECK_MEDICINE; //当前任务状态
-FLAG_FAR_OR_MID Flag_FAR_OR_MID = MID; //距离状态标志
-MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT = RIGHT; //中间状态标志
 // 每10ms调用此函数
 void Control_goto_2(void)
 {
@@ -149,7 +93,7 @@ void Control_goto_2(void)
 
         case STATE_TURN_LEFT_A_BACK:
             Turn_Left();
-            if (++counter_10ms >= TURN_TIME + 10)
+            if (++counter_10ms >= TURN_TIME)
             {
                 counter_10ms = 0;
                 current_motor_state = STATE_FORWARD_1_BACK;
@@ -239,7 +183,7 @@ void Control_goto_1(void)
 
         case STATE_TURN_RIGHT_A_BACK:
             Turn_Right();
-            if (++counter_10ms >= TURN_TIME + 10)
+            if (++counter_10ms >= TURN_TIME + 20)
             {
                 counter_10ms = 0;
                 current_motor_state = STATE_FORWARD_1_BACK;
@@ -275,7 +219,7 @@ void Control_goto_345678(void)
             break;
         case STATE_FORWARD_2:
             Gray_control();
-            if (++counter_10ms >= FORWARD_2_TIME || Digtal == 0b00000000)
+            if (++counter_10ms >= FORWARD_2_TIME)
             {
                 counter_10ms = 0;
                 current_motor_state = STATE_IF_FAR;
@@ -319,8 +263,13 @@ void Control_goto_34(void)
 
             case STATE_WAIT:
                 Car_Stop();
-                if (HAL_GPIO_ReadPin(EN_KEY_GPIO_Port, EN_KEY_Pin) == GPIO_PIN_RESET) //检测到药品被取下（即ON）
+                // if (HAL_GPIO_ReadPin(EN_KEY_GPIO_Port, EN_KEY_Pin) == GPIO_PIN_RESET) //检测到药品被取下（即ON）
+                // {
+                //     current_motor_state = STATE_TURNOVER;
+                // }
+                if (++counter_10ms >= 100)
                 {
+                    counter_10ms = 0;
                     current_motor_state = STATE_TURNOVER;
                 }
                 break;
@@ -345,7 +294,7 @@ void Control_goto_34(void)
 
             case STATE_TURN_RIGHT_A_BACK:
                 Turn_Right();
-                if (++counter_10ms >= TURN_TIME + 10)
+                if (++counter_10ms >= TURN_TIME)
                 {
                     counter_10ms = 0;
                     current_motor_state = STATE_FORWARD_2_BACK;
@@ -391,8 +340,13 @@ void Control_goto_34(void)
 
             case STATE_WAIT:
                 Car_Stop();
-                if (HAL_GPIO_ReadPin(EN_KEY_GPIO_Port, EN_KEY_Pin) == GPIO_PIN_RESET) //检测到药品被取下（即ON）
+                // if (HAL_GPIO_ReadPin(EN_KEY_GPIO_Port, EN_KEY_Pin) == GPIO_PIN_RESET) //检测到药品被取下（即ON）
+                // {
+                //     current_motor_state = STATE_TURNOVER;
+                // }
+                if (++counter_10ms >= 100)
                 {
+                    counter_10ms = 0;
                     current_motor_state = STATE_TURNOVER;
                 }
                 break;
@@ -417,7 +371,7 @@ void Control_goto_34(void)
 
             case STATE_TURN_LEFT_A_BACK:
                 Turn_Left();
-                if (++counter_10ms >= TURN_TIME + 10)
+                if (++counter_10ms >= TURN_TIME + 40)
                 {
                     counter_10ms = 0;
                     current_motor_state = STATE_FORWARD_2_BACK;

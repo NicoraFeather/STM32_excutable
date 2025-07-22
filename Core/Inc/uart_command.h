@@ -7,4 +7,6 @@
 
 #include "usart.h"
 #include "../../Lib/Inc/functional.h"
+void Decode_Command(uint16_t size);
+void USART_Parse_Command(char *str, uint8_t motor_n);
 #endif //UART_COMMAND_H

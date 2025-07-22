@@ -5,6 +5,7 @@
 #include "uart_command.h"
 #include "Grayscale_Sensor.h"
 #include "pid.h"
+#include "State_Control.h"
 /*************************帧格式************************
  * 帧头  | 数据长度 | 数据内容 | 校验和 |
  * 0xAA |   N      |   Data   |  Sum   |
@@ -36,32 +37,34 @@
  ****************************************************/
 
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
+extern FLAG_FAR_OR_MID Flag_FAR_OR_MID; //距离状态标志
+extern MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT; //中间状态标志
+extern _Move_Flag Move_Flag;
 
-uint8_t Uart1_Com_Buff[128] = {0}; // 定义循环缓冲区
-uint8_t Uart1_Com[128] = {0}; //提取的数据
-uint8_t Uart1_Com_Length = 0; // 提取的数据长度
-uint8_t Uart1_Com_Decode[128] = {0}; // 解码之后的数据
-
+uint8_t DAP_Com_Buff[128] = {0}; // 定义循环缓冲区
+uint8_t DAP_Com[128] = {0}; //提取的数据
+uint8_t DAP_Com_Length = 0; // 提取的数据长度
+uint8_t DAP_Com_Decode[128] = {0}; // 解码之后的数据
 
 /**
- * 简单的命令解析函数，放在DMA空闲中断回调函数
- * @param huart
+ * 简单的命令解析函数，提取循环缓冲区之后调用
+ * @param size 实际的命令长度，必然大于等于1
  */
-void Rx_Command(uint16_t size)
+void Decode_Command(uint16_t size)
 {
-    uint8_t dataLen = size - 3; // 数据从DataBuff[2]开始，最后一位是校验和
+    uint8_t dataLen = size; // 数据从DataBuff[2]开始，最后一位是校验和
     for (uint8_t i = 0; i < dataLen; i++)
     {
-        Uart1_Com_Decode[i] = Uart1_Com_Buff[2 + i];
+        DAP_Com_Decode[i] = DAP_Com_Buff[2 + i];
     }
 }
-
 
 void USART_Parse_Command(char *str, uint8_t motor_n)
 {
     char *cmd = strtok(str, "=");
     char *val = strtok(NULL, "!");
-    if (cmd == NULL) return;
+    if (cmd == NULL)
+        return;
 
     // 处理无参数命令
     if (strcmp(cmd, "RES_W") == 0)
@@ -99,7 +102,9 @@ void USART_Parse_Command(char *str, uint8_t motor_n)
             pid_l_position.SP = value;
         else if (strcmp(cmd, "Spe") == 0)
             pid_l_speed.SP = value;
-    } else if (motor_n == 2) // 右电机
+    }
+
+    else if (motor_n == 2) // 右电机
     {
         if (strcmp(cmd, "P2") == 0)
             pid_r_speed.kp = value;
@@ -124,13 +129,55 @@ void USART_Parse_Command(char *str, uint8_t motor_n)
     {
         PID_ChangeSP_General(&pid_l_speed, value);
         PID_ChangeSP_General(&pid_r_speed, value);
-    } else if (strcmp(cmd, "R") == 0)
+    }
+    else if (strcmp(cmd, "R") == 0)
     {
         PID_ChangeSP_General(&pid_l_speed, value);
         PID_ChangeSP_General(&pid_r_speed, -value);
-    } else if (strcmp(cmd, "L") == 0)
+    }
+    else if (strcmp(cmd, "L") == 0)
     {
         PID_ChangeSP_General(&pid_l_speed, -value);
         PID_ChangeSP_General(&pid_r_speed, value);
+    }
+    else if (strcmp(cmd, "Target") == 0)
+    {
+        // 设置目标位置
+        if (value >= 1 && value <= 8)
+        {
+            Move_Flag = (_Move_Flag)value; // 将目标位置转换为枚举类型
+        }
+    }
+    else if (strcmp(cmd, "FAR_OR_MID") == 0)
+    {
+        // 设置距离状态
+        if (value == 0 || value == 1)
+        {
+            Flag_FAR_OR_MID = (FLAG_FAR_OR_MID)value;
+        }
+    }
+    else if (strcmp(cmd, "MID_LEFT_OR_RIGHT") == 0)
+    {
+        // 设置中间转向状态
+        if (value == 0 || value == 1)
+        {
+            Flag_MID_LEFT_OR_RIGHT = (MID_LEFT_OR_RIGHT)value;
+        }
+    }
+    else if (strcmp(cmd, "FAR_LEFT_OR_RIGHT_A") == 0)
+    {
+        // 设置远距离第一次转向状态
+        if (value == 0 || value == 1)
+        {
+            Flag_FAR_OR_MID = (FLAG_FAR_OR_MID)value;
+        }
+    }
+    else if (strcmp(cmd, "FAR_LEFT_OR_RIGHT_B") == 0)
+    {
+        // 设置远距离第二次转向状态
+        if (value == 0 || value == 1)
+        {
+            Flag_FAR_OR_MID = (FLAG_FAR_OR_MID)value;
+        }
     }
 }

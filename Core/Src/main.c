@@ -38,6 +38,8 @@
 #include "../Inc/wireless.h"
 #include "../Inc/motor_control.h"
 #include "delay.h"
+#include "State_Control.h"
+#include "uart_command.h"
 #include "uart_com_cycle.h"
 /* USER CODE END Includes */
 
@@ -59,23 +61,19 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-bool system_initialized = false;
+
 /********************灰度传感器配置********************/
 No_MCU_Sensor sensor;
-char Gray_rx_buff[256]="";
-unsigned short Anolog[8]={0};
-unsigned short white[8]={1559,1696,2608,2262,2035,2361,2645,1694};
-unsigned short black[8]={183,235,214,187,145,219,359,117};
+char Gray_rx_buff[256] = "";
+unsigned short Anolog[8] = {0};
+unsigned short white[8] = {1559, 1696, 2608, 2262, 2035, 2361, 2645, 1694};
+unsigned short black[8] = {183, 235, 214, 187, 145, 219, 359, 117};
 unsigned short Normal[8];
 unsigned char Digtal;
 /********************extern数组********************/
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position; //PID结构体
-extern uint8_t Uart1_Com_Buff[128]; //串口接收数据缓存
-extern uint8_t BLE_Com[128]; //蓝牙接收数据缓存
-extern uint8_t Uart1_Com[128]; //提取的数据
-extern uint8_t Uart1_Com_Length; // 提取的数据长度
-
+extern uint8_t DAP_Com_Buff[128]; //串口接收数据缓存
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -129,79 +127,81 @@ int main(void)
   MX_ADC2_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  DWT_InitMicros(); //初始化DWT计数器，程序正式计数
-  Vbat_Init();//初始化电池电压采集
+    DWT_InitMicros(); //初始化DWT计数器，程序正式计数
+    Vbat_Init(); //初始化电池电压采集
 
-  /************串口接收初始化************/
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart3,BLE_Com, 128);
-  __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, Uart1_Com_Buff, 128);
-  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+    /************串口接收初始化************/
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, DAP_Com_Buff, 128);
+    __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
 
-  /**********************灰度传感器初始化**********************/
+    /**********************灰度传感器初始化**********************/
 
-  sprintf((char *)Gray_rx_buff,"hello_world!\r\n");
-  HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen((char *)Gray_rx_buff),HAL_MAX_DELAY);
+    sprintf((char *) Gray_rx_buff, "hello_world!\r\n");
+    HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen((char *) Gray_rx_buff),HAL_MAX_DELAY);
 
-  //初始化传感器，不带黑白
-  No_MCU_Ganv_Sensor_Init_Frist(&sensor);//结构体归零
-  No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);//无校准读取数据
-  Get_Anolog_Value(&sensor,Anolog);
-  sprintf(Gray_rx_buff,"Anolog %d,%d,%d,%d,%d,%d,%d,%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-  HAL_UART_Transmit_DMA(&huart1, Gray_rx_buff, strlen(Gray_rx_buff));
-  HAL_Delay(100);
+    //初始化传感器，不带黑白
+    No_MCU_Ganv_Sensor_Init_Frist(&sensor); //结构体归零
+    No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor); //无校准读取数据
+    Get_Anolog_Value(&sensor, Anolog);
+    sprintf(Gray_rx_buff, "Anolog %d,%d,%d,%d,%d,%d,%d,%d\r\n", Anolog[0], Anolog[1], Anolog[2], Anolog[3], Anolog[4],
+            Anolog[5], Anolog[6], Anolog[7]);
+    HAL_UART_Transmit_DMA(&huart1, Gray_rx_buff, strlen(Gray_rx_buff));
+    HAL_Delay(100);
 
-  //得到黑白校准值之后，初始化传感器
-  No_MCU_Ganv_Sensor_Init(&sensor,white,black);
-  HAL_Delay(100);
-  /*******************电机控制初始化*******************/
-  //MPU6050_Init(); //初始化MPU6050
-  Motor_Init();//电机速度环初始化
-  //Control_Init();//电机平衡初始化
+    //得到黑白校准值之后，初始化传感器
+    No_MCU_Ganv_Sensor_Init(&sensor, white, black);
+    HAL_Delay(100);
+    /*******************电机控制初始化*******************/
+    //MPU6050_Init(); //初始化MPU6050
+    Motor_Init(); //电机速度环初始化
+    //Control_Init();//电机平衡初始化
 
-  PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f);//速度环设定值
-  PID_Set_General(&pid_r_speed, 0.4f, 10.0f, 0.0f);
-  HAL_Delay(500);
+    PID_Set_General(&pid_l_speed, 0.4f, 10.0f, 0.0f); //速度环设定值
+    PID_Set_General(&pid_r_speed, 0.4f, 10.0f, 0.0f);
+    HAL_Delay(500);
 
-  //HAL_TIM_Base_Start_IT(&GAP_TIM);//10ms定时器开启
+    HAL_TIM_Base_Start_IT(&GAP_TIM); //10ms定时器开启
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    Uart1_Com_Length = Command_GetCommand(Uart1_Com);
-    if (Uart1_Com_Length != 0) //如果有命令
+    while (1)
     {
-      HAL_UART_Transmit(&huart1, Uart1_Com, Uart1_Com_Length, HAL_MAX_DELAY); //回显命令
-    }
-    // //无时基传感器常规任务，包含模拟量，数字量，归一化量
-    // No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
-    // //有时基传感器常规任务，包含模拟量，数字量，归一化量
-    // //			No_Mcu_Ganv_Sensor_Task_With_tick(&sensor)
-    // //获取传感器数字量结果(只有当有黑白值传入进去了之后才会有这个)
-    // Digtal=Get_Digtal_For_User(&sensor);
-    // sprintf(Gray_rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
-    // HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff), HAL_MAX_DELAY);
-    //
-    // //获取传感器模拟量结果(有黑白初始化后返回1 没有返回 0)
-    // // if(Get_Anolog_Value(&sensor,Anolog)){
-    // //   sprintf(Gray_rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-    // //   HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff), HAL_MAX_DELAY);
-    // // }
-    //
-    // //获取传感器归一化结果(只有当有黑白值传入进去了之后才会有这个结果！！有黑白值初始化后返1 没有返回 0)
-    // if(Get_Normalize_For_User(&sensor,Normal)){
-    //   sprintf(Gray_rx_buff,"Normalize %d-%d-%d-%d-%d-%d-%d-%d\r\n",Normal[0],Normal[1],Normal[2],Normal[3],Normal[4],Normal[5],Normal[6],Normal[7]);
-    //   HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff), HAL_MAX_DELAY);
-    // }
-    //
-    // HAL_Delay(1000);//最短延时时间
+        // DAP_Com_Length = Command_GetCommand(DAP_Com);//DAP_Com_Length事实上是包含包头和校验和的字节数
+        // if (DAP_Com_Length != 0) //如果有命令
+        // {
+        //     Decode_Command(DAP_Com_Length-3);
+        //     HAL_UART_Transmit(&huart3, DAP_Com_Decode, strlen(DAP_Com_Decode), HAL_MAX_DELAY); //回显解码之后的命令
+        //     USART_Parse_Command(DAP_Com_Decode, 1); //解析命令
+        // }
+
+        // //无时基传感器常规任务，包含模拟量，数字量，归一化量
+        // No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
+        // //有时基传感器常规任务，包含模拟量，数字量，归一化量
+        // //			No_Mcu_Ganv_Sensor_Task_With_tick(&sensor)
+        // //获取传感器数字量结果(只有当有黑白值传入进去了之后才会有这个)
+        // Digtal=Get_Digtal_For_User(&sensor);
+        // sprintf(Gray_rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
+        // HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff), HAL_MAX_DELAY);
+        //
+        // //获取传感器模拟量结果(有黑白初始化后返回1 没有返回 0)
+        // // if(Get_Anolog_Value(&sensor,Anolog)){
+        // //   sprintf(Gray_rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
+        // //   HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff), HAL_MAX_DELAY);
+        // // }
+        //
+        // //获取传感器归一化结果(只有当有黑白值传入进去了之后才会有这个结果！！有黑白值初始化后返1 没有返回 0)
+        // if(Get_Normalize_For_User(&sensor,Normal)){
+        //   sprintf(Gray_rx_buff,"Normalize %d-%d-%d-%d-%d-%d-%d-%d\r\n",Normal[0],Normal[1],Normal[2],Normal[3],Normal[4],Normal[5],Normal[6],Normal[7]);
+        //   HAL_UART_Transmit(&huart1, Gray_rx_buff, strlen(Gray_rx_buff), HAL_MAX_DELAY);
+        // }
+        //
+        // HAL_Delay(1000);//最短延时时间
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+    }
   /* USER CODE END 3 */
 }
 
@@ -262,11 +262,11 @@ void SystemClock_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+    /* User can add his own implementation to report the HAL error return state */
+    __disable_irq();
+    while (1)
+    {
+    }
   /* USER CODE END Error_Handler_Debug */
 }
 

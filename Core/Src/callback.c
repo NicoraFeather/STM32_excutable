@@ -11,11 +11,12 @@
 #include "motor_control.h"
 #include "Grayscale_Sensor.h"
 #include "State_Control.h"
+#include "uart_command.h"
 #include "uart_com_cycle.h"
 #include "vbat.h"
 #include "wireless.h"
 
-extern uint8_t Uart1_Com_Buff[128]; //接收串口1的数据缓存数组
+extern uint8_t DAP_Com_Buff[128]; //接收串口1的数据缓存数组
 float motor_Out1 = 0;
 float motor_Out2 = 0;
 char message[100] = ""; //与vofa通信用数组
@@ -34,6 +35,16 @@ extern bool system_initialized;
 extern No_MCU_Sensor sensor; //无时基传感器结构体
 extern unsigned char Digtal;
 extern char Gray_rx_buff[256];
+
+extern uint8_t DAP_Com_Buff[128]; //串口接收数据缓存
+extern uint8_t DAP_Com[128]; //提取的数据
+extern uint8_t DAP_Com_Length; // 提取的数据长度
+extern uint8_t DAP_Com_Decode[128]; // 解码之后的数据
+
+ /*************在uart_command.c中定义*************/
+extern FLAG_FAR_OR_MID Flag_FAR_OR_MID; //距离状态标志
+extern MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT; //中间状态标志
+extern _Move_Flag Move_Flag;
 
 
 int i = 0;
@@ -87,16 +98,36 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //定时器回调函
         //  }
         // /*******************************姿态读取***************************/
         // MPU6050_Kalman_Euler_Angels();
-        /*******************新一版PID速度环*********************/\
+        /*******************新一版PID速度环*********************/
+        DAP_Com_Length = Command_GetCommand(DAP_Com);//DAP_Com_Length事实上是包含包头和校验和的字节数
+        if (DAP_Com_Length != 0) //如果有命令
+        {
+            Decode_Command(DAP_Com_Length-3);
+            HAL_UART_Transmit(&huart3, DAP_Com_Decode, strlen(DAP_Com_Decode), HAL_MAX_DELAY); //回显解码之后的命令
+            USART_Parse_Command(DAP_Com_Decode, 1); //解析命令
+        }
         No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
         Digtal = Get_Digtal_For_User(&sensor);
         Motor_Get_Speed(&motor1);
         Motor_Get_Speed(&motor2);
         //MPU6050_Kalman_Euler_Angels();
-        // Control_Compute();
-        //Gray_control();
-        //Control_goto_2();
-        Control_goto_345678();
+        if (Move_Flag == MOVE_TO_1)
+        {
+            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+            Control_goto_1();
+        }
+        else if (Move_Flag == MOVE_TO_2)
+        {
+            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+            Control_goto_2();
+
+        }
+        else
+        {
+            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+            Control_goto_345678();
+        }
+        //Control_goto_345678();
         Motor_PID_Compute();
         /*******************************串口发送数据*********************************/
         i++;
@@ -104,9 +135,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //定时器回调函
         {
             i = 0;
             //HAL_UART_Transmit(&huart1,Gray_rx_buff,strlen(Gray_rx_buff),HAL_MAX_DELAY);
-            //sprintf(message, "speed:%.2f,%.2f,%.2f,%.2f\r\n", motor1.speed, motor2.speed, pid_l_speed.SP,
-            //         pid_r_speed.SP);
-            //HAL_UART_Transmit_IT(&huart1, message, strlen(message));
+            // sprintf(message, "speed:%.2f,%.2f,%.2f,%.2f\r\n", motor1.speed, motor2.speed, pid_l_speed.SP,
+            //          pid_r_speed.SP);
+            // HAL_UART_Transmit_IT(&huart3, message, strlen(message));
 
            //sprintf(Gray_rx_buff, "Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n", (Digtal >> 0) & 0x01, (Digtal >> 1) & 0x01,
            //        (Digtal >> 2) & 0x01, (Digtal >> 3) & 0x01, (Digtal >> 4) & 0x01, (Digtal >> 5) & 0x01,
@@ -119,19 +150,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //定时器回调函
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-    if (huart->Instance == USART1) //如果是串口1（上位机）
+    if (huart->Instance == USART3) //如果是串口1（上位机）
     {
-        Command_Write(Uart1_Com_Buff, Size);
+        Command_Write(DAP_Com_Buff, Size);
+        //HAL_UART_Transmit(huart, DAP_Com_Buff, Size, HAL_MAX_DELAY); //回显接收到的命令
         // 重新启动DMA接收
-        HAL_UARTEx_ReceiveToIdle_DMA(huart, Uart1_Com_Buff, 128);
-        __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-    }
-
-    if (huart->Instance == USART3) // 如果是蓝牙串口
-    {
-        HAL_UART_Transmit_DMA(&huart1, BLE_Com, Size);
-
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart3, BLE_Com, 128);
+        HAL_UARTEx_ReceiveToIdle_DMA(huart, DAP_Com_Buff, 128);
         __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
     }
+
+    // if (huart->Instance == USART3) // 如果是蓝牙串口
+    // {
+    //     HAL_UART_Transmit_DMA(&huart1, BLE_Com, Size);
+    //
+    //     HAL_UARTEx_ReceiveToIdle_DMA(&huart3, BLE_Com, 128);
+    //     __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+    // }
 }

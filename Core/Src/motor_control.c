@@ -52,15 +52,26 @@ void Turn_Left()
 void Turn_Right_Adj()
 {
     PID_ChangeSP_General(&pid_l_speed, 12);
-    PID_ChangeSP_General(&pid_r_speed, 10);
+    PID_ChangeSP_General(&pid_r_speed, 9);
 }
 
 void Turn_Left_Adj()
 {
-    PID_ChangeSP_General(&pid_l_speed, 10);
+    PID_ChangeSP_General(&pid_l_speed, 9);
     PID_ChangeSP_General(&pid_r_speed, 12);
 }
 
+void Turn_Right_Little_Adj()
+{
+    PID_ChangeSP_General(&pid_l_speed, 12);
+    PID_ChangeSP_General(&pid_r_speed, 11);
+}
+
+void Turn_Left_Little_Adj()
+{
+    PID_ChangeSP_General(&pid_l_speed, 11);
+    PID_ChangeSP_General(&pid_r_speed, 12);
+}
 
 void Self_Left()
 {
@@ -90,21 +101,27 @@ void Gray_control(void)
             break;
 
         // 理想前进：中间两路都检测到黑线
-        case 0b11100111: // 0b00011000 取反：黑=0，白=1
-        case 0b11101111: // 容忍轻微偏移
-        case 0b11110111:
+        case 0b11100111:
             Go_Ahead();
             break;
 
+        case 0b11110111:
+            Turn_Left_Little_Adj();
+            break;
+        case 0b11101111:
+            Turn_Right_Little_Adj();
+            break;
         // 轻微偏左：中间偏左黑
         case 0b11110011:
         case 0b11111011:
+
             Turn_Left_Adj(); // 微调右转
             break;
 
         // 轻微偏右：中间偏右黑
         case 0b11011111:
         case 0b11001111:
+
             Turn_Right_Adj(); // 微调左转
             break;
 

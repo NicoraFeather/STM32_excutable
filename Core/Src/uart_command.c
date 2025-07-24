@@ -40,6 +40,8 @@ extern PID pid_l_speed, pid_l_position, pid_r_speed, pid_r_position;
 extern FLAG_FAR_OR_MID Flag_FAR_OR_MID; //距离状态标志
 extern MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT; //中间状态标志
 extern _Move_Flag Move_Flag;
+extern _Move_Flag TargetNum[8]; //目标位置数组，存储接受到的目标位置命令
+extern uint8_t CmdIndex; //命令索引位，表示当前接受到的命令条数
 
 uint8_t DAP_Com_Buff[128] = {0}; // 定义循环缓冲区
 uint8_t DAP_Com[128] = {0}; //提取的数据
@@ -146,6 +148,8 @@ void USART_Parse_Command(char *str, uint8_t motor_n)
         if (value >= 1 && value <= 8)
         {
             Move_Flag = (_Move_Flag)value; // 将目标位置转换为枚举类型
+            TargetNum[CmdIndex] = Move_Flag;
+            CmdIndex++;
         }
     }
     else if (strcmp(cmd, "FAR_OR_MID") == 0)

@@ -129,6 +129,8 @@ void Gray_control(void)
         case 0b11111001:
         case 0b11111101:
         case 0b11111100:
+            case 0b11111000:
+            case 0b11110001:
         case 0b11111110:
             Turn_Left(); // 明显右转
             break;

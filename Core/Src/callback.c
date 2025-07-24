@@ -35,7 +35,7 @@ extern bool system_initialized;
 extern No_MCU_Sensor sensor; //无时基传感器结构体
 extern unsigned char Digtal;
 extern char Gray_rx_buff[256];
-
+/********************串口配置********************/
 extern uint8_t DAP_Com_Buff[128]; //串口接收数据缓存
 extern uint8_t DAP_Com[128]; //提取的数据
 extern uint8_t DAP_Com_Length; // 提取的数据长度
@@ -45,7 +45,8 @@ extern uint8_t DAP_Com_Decode[128]; // 解码之后的数据
 extern FLAG_FAR_OR_MID Flag_FAR_OR_MID; //距离状态标志
 extern MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT; //中间状态标志
 extern _Move_Flag Move_Flag;
-
+extern _Move_Flag TargetNum[8]; //目标位置数组，存储接受到的目标位置命令
+extern uint8_t CmdIndex; //命令索引位，表示当前接受到的命令条数
 
 int i = 0;
 float L_Target_Position = 20000;
@@ -104,29 +105,46 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //定时器回调函
         {
             Decode_Command(DAP_Com_Length-3);
             HAL_UART_Transmit(&huart3, DAP_Com_Decode, strlen(DAP_Com_Decode), HAL_MAX_DELAY); //回显解码之后的命令
-            USART_Parse_Command(DAP_Com_Decode, 1); //解析命令
+            USART_Parse_Command(DAP_Com_Decode, 1); //解析命令，以及变更索引位
         }
         No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
         Digtal = Get_Digtal_For_User(&sensor);
         Motor_Get_Speed(&motor1);
         Motor_Get_Speed(&motor2);
         //MPU6050_Kalman_Euler_Angels();
-        if (Move_Flag == MOVE_TO_1)
-        {
-            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-            Control_goto_1();
-        }
-        else if (Move_Flag == MOVE_TO_2)
-        {
-            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-            Control_goto_2();
-
-        }
-        else
-        {
-            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-            Control_goto_345678();
-        }
+        // if (TargetNum[0] != 0)
+        // {
+        //     if (TargetNum[1] != 0 )
+        //     {
+        //         if (TargetNum[1] == TargetNum[0])
+        //         {
+        //             Flag_FAR_OR_MID = MID;
+        //             Flag_MID_LEFT_OR_RIGHT = LEFT;
+        //         }
+        //         else if (TargetNum[2] == TargetNum[0])
+        //         {
+        //             Flag_FAR_OR_MID = MID;
+        //             Flag_MID_LEFT_OR_RIGHT = RIGHT;
+        //         }
+        //         else
+        //             Flag_FAR_OR_MID = FAR;
+        //     }
+            if (Move_Flag == MOVE_TO_1)
+            {
+                HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+                Control_goto_1();
+            }
+            else if (Move_Flag == MOVE_TO_2)
+            {
+                HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+                Control_goto_2();
+            }
+            else
+            {
+                HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+                Control_goto_345678();
+            }
+        //}
         //Control_goto_345678();
         Motor_PID_Compute();
         /*******************************串口发送数据*********************************/
@@ -150,7 +168,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //定时器回调函
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-    if (huart->Instance == USART3) //如果是串口1（上位机）
+    if (huart->Instance == USART3)
     {
         Command_Write(DAP_Com_Buff, Size);
         //HAL_UART_Transmit(huart, DAP_Com_Buff, Size, HAL_MAX_DELAY); //回显接收到的命令

@@ -7,11 +7,12 @@
 extern unsigned char Digtal;
 
 /********************任务状态机********************/
-_Move_Flag Move_Flag = MOVE_TO_1; //当前移动状态
+_Move_Flag Move_Flag = MOVE_TO_7; //当前移动状态
 State_Task current_task_state = STATE_CHECK_MEDICINE; //当前任务状态
 FLAG_FAR_OR_MID Flag_FAR_OR_MID = MID; //距离状态标志
-MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT = LEFT; //中间状态标志
-
+MID_LEFT_OR_RIGHT Flag_MID_LEFT_OR_RIGHT = RIGHT; //中间状态标志
+uint8_t CmdIndex = 0; //命令索引位，表示当前接受到的命令条数
+_Move_Flag TargetNum[8] = {0}; //目标位置数组，存储接受到的目标位置命令
 
 uint32_t counter_10ms = 0; // 10ms计时器
 
@@ -57,7 +58,7 @@ void Control_goto_2(void)
             break;
 
         case STATE_END: //走向末端
-            Gray_control();
+             Go_Ahead();
             if (++counter_10ms >= END_TIME)
             {
                 counter_10ms = 0;
@@ -83,7 +84,7 @@ void Control_goto_2(void)
             break;
 
         case STATE_END_BACK: //回到末端
-            Gray_control();
+            Go_Ahead();
             if (++counter_10ms >= END_BACK_TIME)
             {
                 counter_10ms = 0;
@@ -147,7 +148,7 @@ void Control_goto_1(void)
             break;
 
         case STATE_END: //走向末端
-            Gray_control();
+            Go_Ahead();
             if (++counter_10ms >= END_TIME)
             {
                 counter_10ms = 0;
@@ -173,7 +174,7 @@ void Control_goto_1(void)
             break;
 
         case STATE_END_BACK: //回到末端
-            Gray_control();
+            Go_Ahead();
             if (++counter_10ms >= END_BACK_TIME)
             {
                 counter_10ms = 0;
@@ -183,7 +184,7 @@ void Control_goto_1(void)
 
         case STATE_TURN_RIGHT_A_BACK:
             Turn_Right();
-            if (++counter_10ms >= TURN_TIME + 20)
+            if (++counter_10ms >= TURN_TIME)
             {
                 counter_10ms = 0;
                 current_motor_state = STATE_FORWARD_1_BACK;
@@ -253,7 +254,7 @@ void Control_goto_34(void)
                 break;
 
             case STATE_END: //走向末端
-                Gray_control();
+                Go_Ahead();
                 if (++counter_10ms >= END_TIME)
                 {
                     counter_10ms = 0;
@@ -276,7 +277,7 @@ void Control_goto_34(void)
 
             case STATE_TURNOVER:
                 Self_Left();
-                if (++counter_10ms >= TURNOVER_TIME - 10)
+                if (++counter_10ms >= TURNOVER_TIME-10)
                 {
                     counter_10ms = 0;
                     current_motor_state = STATE_END_BACK;
@@ -284,7 +285,7 @@ void Control_goto_34(void)
                 break;
 
             case STATE_END_BACK: //回到末端
-                Gray_control();
+                Go_Ahead();
                 if (++counter_10ms >= END_BACK_TIME)
                 {
                     counter_10ms = 0;
@@ -330,7 +331,7 @@ void Control_goto_34(void)
                 break;
 
             case STATE_END: //走向末端
-                Gray_control();
+                Go_Ahead();
                 if (++counter_10ms >= END_TIME)
                 {
                     counter_10ms = 0;
@@ -361,7 +362,7 @@ void Control_goto_34(void)
                 break;
 
             case STATE_END_BACK: //回到末端
-                Gray_control();
+                Go_Ahead();
                 if (++counter_10ms >= END_BACK_TIME)
                 {
                     counter_10ms = 0;
@@ -371,7 +372,7 @@ void Control_goto_34(void)
 
             case STATE_TURN_LEFT_A_BACK:
                 Turn_Left();
-                if (++counter_10ms >= TURN_TIME + 40)
+                if (++counter_10ms >= TURN_TIME +10)
                 {
                     counter_10ms = 0;
                     current_motor_state = STATE_FORWARD_2_BACK;
